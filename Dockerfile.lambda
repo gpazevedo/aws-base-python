@@ -1,0 +1,31 @@
+# =============================================================================
+# Dockerfile for AWS Lambda (Python 3.13 + uv)
+# =============================================================================
+# This Dockerfile builds a Lambda container image using Python 3.13 and uv
+# for dependency management
+# =============================================================================
+
+FROM public.ecr.aws/lambda/python:3.13-arm64
+
+# Install uv - fast Python package installer
+COPY --from=ghcr.io/astral-sh/uv:latest /uv /usr/local/bin/uv
+
+# Set working directory
+WORKDIR ${LAMBDA_TASK_ROOT}
+
+# Copy dependency files
+COPY pyproject.toml uv.lock* ./
+
+# Install dependencies using uv
+# --frozen: Use exact versions from uv.lock
+# --no-dev: Skip development dependencies
+# --no-cache: Don't cache downloads (reduces image size)
+RUN uv sync --frozen --no-dev --no-cache
+
+# Copy application code
+COPY src/ ./
+
+# Lambda handler
+# Format: filename.function_name
+# Example: If handler is in src/main.py, function name is "handler"
+CMD ["main.handler"]
