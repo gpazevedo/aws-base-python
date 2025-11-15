@@ -478,7 +478,6 @@ To modify scripts:
 ## 🔗 Related Documentation
 
 - [README.md](../README.md) - Main project documentation
-- [CHANGES.md](../CHANGES.md) - Migration guide
 - [Bootstrap outputs](../bootstrap/outputs.tf) - Available Terraform outputs
 - [GitHub Actions docs](https://docs.github.com/en/actions)
 

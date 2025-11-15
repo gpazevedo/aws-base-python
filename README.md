@@ -81,7 +81,7 @@ A production-ready Infrastructure as Code (IaC) template for bootstrapping AWS p
 ```bash
 # Clone this repository
 git clone <your-repo>
-cd aws-base
+cd aws-base-python
 
 # Copy and customize configuration
 cp bootstrap/terraform.tfvars.example bootstrap/terraform.tfvars
@@ -549,12 +549,6 @@ This repository includes comprehensive documentation for all aspects of the boot
   - Decision matrices for choosing compute options
   - Safety guarantees (what never changes)
 
-- **[📜 Migration Guide](CHANGES.md)** - Migrating from old bootstrap
-  - What changed and why
-  - Breaking changes
-  - Step-by-step migration instructions
-  - Resource comparison matrix
-
 #### 🛠️ Development Tools
 
 - **[✅ Pre-commit Hooks](docs/PRE-COMMIT.md)** - Automated code quality
@@ -579,7 +573,6 @@ This repository includes comprehensive documentation for all aspects of the boot
 | [INCREMENTAL-ADOPTION.md](docs/INCREMENTAL-ADOPTION.md) | Scaling strategy | Planning architecture evolution |
 | [PRE-COMMIT.md](docs/PRE-COMMIT.md) | Code quality setup | Setting up development environment |
 | [SCRIPTS.md](docs/SCRIPTS.md) | Automation reference | Using helper scripts |
-| [CHANGES.md](CHANGES.md) | Migration info | Upgrading from old bootstrap |
 
 ### External Resources
 

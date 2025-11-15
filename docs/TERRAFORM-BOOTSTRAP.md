@@ -964,7 +964,6 @@ aws iam get-role --role-name my-app-github-actions-lambda
 - **[INCREMENTAL-ADOPTION.md](INCREMENTAL-ADOPTION.md)** - How to start with Lambda and add EKS later
 - **[PRE-COMMIT.md](PRE-COMMIT.md)** - Python code quality automation
 - **[SCRIPTS.md](SCRIPTS.md)** - Automation scripts documentation
-- **[CHANGES.md](../CHANGES.md)** - Migration guide from old bootstrap
 
 ---
 

@@ -650,7 +650,6 @@ When adding new compute options:
 ## 📚 Related Documentation
 
 - [README.md](../README.md) - Main documentation
-- [CHANGES.md](../CHANGES.md) - Migration from old bootstrap
 - [docs/SCRIPTS.md](./SCRIPTS.md) - Automation scripts
 - [docs/PRE-COMMIT.md](./PRE-COMMIT.md) - Code quality setup
 - [bootstrap/terraform.tfvars.example](../bootstrap/terraform.tfvars.example) - Configuration examples
