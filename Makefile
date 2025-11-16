@@ -288,28 +288,28 @@ setup-pre-commit:
 
 lint:
 	@echo "🔍 Checking code quality with Ruff..."
-	cd backend && uv run ruff check src/ tests/
+	cd backend && uv run ruff check .
 
 lint-fix:
 	@echo "🔧 Auto-fixing issues with Ruff..."
-	cd backend && uv run ruff check --fix src/ tests/
-	cd backend && uv run ruff format src/ tests/
+	cd backend && uv run ruff check --fix .
+	cd backend && uv run ruff format .
 
 format-python:
 	@echo "🎨 Formatting Python code with Ruff..."
-	cd backend && uv run ruff format src/ tests/
+	cd backend && uv run ruff format .
 
 typecheck:
 	@echo "🔎 Type checking with Pyright..."
-	cd backend && uv run pyright src/
+	cd backend && uv run pyright .
 
 test:
 	@echo "🧪 Running tests..."
-	cd backend && uv run pytest tests/ -v --cov=src --cov-report=term-missing
+	cd backend && uv run pytest . -v --cov=. --cov-report=term-missing
 
 test-watch:
 	@echo "👀 Running tests in watch mode..."
-	cd backend && uv run pytest-watch tests/ -v
+	cd backend && uv run pytest-watch . -v
 
 pre-commit-all:
 	@echo "🪝 Running pre-commit on all files..."

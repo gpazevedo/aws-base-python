@@ -285,9 +285,9 @@ curl -X POST https://<function-url> \
 ┌─────────────────────────────────────────────────────────────┐
 │                     Local Development                       │
 │                                                             │
-│  1. Write code in backend/src/                              │
+│  1. Write code in backend/                                  │
 │  2. Run tests: make test                                    │
-│  3. Test locally: uv run python -c "from src.main..."       │
+│  3. Test locally: uv run python -c "from main..."           │
 │  4. Test container: docker run -p 9000:8080                 │
 │  5. Commit: git commit -m "feat: ..."                       │
 └──────────────────────┬──────────────────────────────────────┘
@@ -446,16 +446,14 @@ uv add --dev pytest black ruff
 
 ```
 backend/
-├── src/
-│   ├── __init__.py
-│   └── main.py          # Application entry point
-├── tests/
-│   └── test_main.py
-├── pyproject.toml       # Project configuration
+├── __init__.py
+├── main.py             # Application entry point
+├── test_main.py        # Test suite
+├── pyproject.toml      # Project configuration
 ├── uv.lock             # Locked dependencies (commit to git)
-├── Dockerfile.lambda    # Lambda container
+├── Dockerfile.lambda   # Lambda container
 ├── Dockerfile.apprunner # App Runner container
-└── Dockerfile.eks       # EKS container
+└── Dockerfile.eks      # EKS container
 ```
 
 ### Build Containers
@@ -536,12 +534,9 @@ aws-base/
 │       └── ...                # Other resources
 │
 ├── backend/                   # Python backend application
-│   ├── src/                   # Application source code
-│   │   ├── __init__.py
-│   │   └── main.py            # Lambda handler
-│   ├── tests/                 # Test suite
-│   │   ├── __init__.py
-│   │   └── test_main.py
+│   ├── __init__.py
+│   ├── main.py                # Lambda handler / application entry point
+│   ├── test_main.py           # Test suite
 │   ├── Dockerfile.lambda      # Lambda container image
 │   ├── Dockerfile.apprunner   # App Runner container image
 │   ├── Dockerfile.eks         # EKS container image

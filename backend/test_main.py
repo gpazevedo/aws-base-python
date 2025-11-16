@@ -1,6 +1,6 @@
 """Tests for main module."""
 
-from src.main import greet, handler
+from main import greet, handler
 
 
 def test_greet() -> None:

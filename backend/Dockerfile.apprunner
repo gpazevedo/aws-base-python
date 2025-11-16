@@ -27,8 +27,8 @@ COPY pyproject.toml uv.lock* ./
 # --no-dev: Skip development dependencies
 RUN uv sync --frozen --no-dev
 
-# Copy application code
-COPY src/ ./src/
+# Copy application code (exclude test files)
+COPY main.py __init__.py ./
 
 # App Runner expects port 8080
 EXPOSE 8080
@@ -39,4 +39,4 @@ HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
 
 # Run application with uvicorn
 # Adjust based on your framework (FastAPI, Flask, etc.)
-CMD ["uv", "run", "uvicorn", "src.main:app", "--host", "0.0.0.0", "--port", "8080"]
+CMD ["uv", "run", "uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8080"]

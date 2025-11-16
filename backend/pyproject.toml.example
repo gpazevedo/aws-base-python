@@ -62,7 +62,7 @@ requires = ["hatchling"]
 build-backend = "hatchling.build"
 
 [tool.hatch.build.targets.wheel]
-packages = ["src"]
+packages = ["."]
 
 [dependency-groups]
 dev = [
@@ -87,7 +87,7 @@ target-version = "py313"
 line-length = 100
 
 # Source code directories
-src = ["src", "tests"]
+src = ["."]
 
 # Exclude patterns
 extend-exclude = [
@@ -148,7 +148,7 @@ dummy-variable-rgx = "^(_+|(_+[a-zA-Z0-9_]*[a-zA-Z0-9]+?))$"
 
 [tool.ruff.lint.isort]
 # Import sorting configuration
-known-first-party = ["src"]
+known-first-party = []
 combine-as-imports = true
 split-on-trailing-comma = true
 
@@ -174,7 +174,7 @@ pythonVersion = "3.13"
 pythonPlatform = "Linux"
 
 # Source directories
-include = ["src"]
+include = ["."]
 exclude = [
     "**/__pycache__",
     "**/.pytest_cache",
@@ -183,6 +183,7 @@ exclude = [
     ".venv",
     "build",
     "dist",
+    "test_*.py",
 ]
 
 # Type checking mode
@@ -237,13 +238,13 @@ reportUnboundVariable = true
 # =============================================================================
 
 [tool.pytest.ini_options]
-testpaths = ["tests"]
+testpaths = ["."]
 python_files = ["test_*.py", "*_test.py"]
 python_functions = ["test_*"]
 python_classes = ["Test*"]
 addopts = [
     "--verbose",
-    "--cov=src",
+    "--cov=.",
     "--cov-report=term-missing:skip-covered",
     "--cov-report=html",
     "--cov-report=xml",
@@ -262,10 +263,10 @@ markers = [
 # =============================================================================
 
 [tool.coverage.run]
-source = ["src"]
+source = ["."]
 branch = true
 omit = [
-    "*/tests/*",
+    "test_*.py",
     "*/__pycache__/*",
     "*/site-packages/*",
 ]

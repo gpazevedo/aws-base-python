@@ -22,10 +22,9 @@ COPY pyproject.toml uv.lock* ./
 # --no-cache: Don't cache downloads (reduces image size)
 RUN uv sync --frozen --no-dev --no-cache
 
-# Copy application code
-COPY src/ ./
+# Copy application code (exclude test files)
+COPY main.py __init__.py ./
 
 # Lambda handler
 # Format: filename.function_name
-# Example: If handler is in src/main.py, function name is "handler"
 CMD ["main.handler"]
