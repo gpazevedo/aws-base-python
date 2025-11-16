@@ -186,7 +186,7 @@ uv sync
 # Run the Lambda handler locally
 uv run python -c "
 from src.main import handler
-event = {'body': '{\"name\": \"World\"}'}
+event = {'name': 'World'}
 context = None
 result = handler(event, context)
 print(result)
@@ -203,15 +203,18 @@ make test
 #### 3. Test Lambda Container Locally (Docker)
 
 ```bash
+# Set your project name (from bootstrap/terraform.tfvars)
+export PROJECT_NAME="my-project"  # Replace with your actual project name
+
 # Build Lambda container
 make docker-build
 
 # Run container locally
-docker run -p 9000:8080 my-project:latest
+docker run -p 9000:8080 ${PROJECT_NAME}:latest
 
 # Test in another terminal
 curl -XPOST "http://localhost:9000/2015-03-31/functions/function/invocations" \
-  -d '{"body": "{\"name\": \"World\"}"}'
+  -d '{"name": "World"}'
 ```
 
 ### Deploy to AWS
@@ -226,9 +229,10 @@ make app-init-dev
 make app-apply-dev
 
 # 3. Test the deployed Lambda
+# Replace 'my-project' with your actual project name from terraform.tfvars
 aws lambda invoke \
   --function-name my-project-api-dev \
-  --payload '{"body": "{\"name\": \"World\"}"}' \
+  --payload '{"name": "World"}' \
   response.json
 
 cat response.json
@@ -264,11 +268,13 @@ git push origin v0.0.1
 
 ```bash
 # Get function URL (if using Lambda Function URLs)
+# Replace 'my-project' with your actual project name
 aws lambda get-function-url-config \
   --function-name my-project-api-dev
 
-# Test the endpoint
-curl -X POST https://<api-url>/dev/api \
+# Test the endpoint using the Function URL
+# Note: The actual endpoint path depends on your API Gateway or Function URL configuration
+curl -X POST https://<function-url> \
   -H "Content-Type: application/json" \
   -d '{"name": "World"}'
 ```
