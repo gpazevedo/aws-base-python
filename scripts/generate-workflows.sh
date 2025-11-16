@@ -449,7 +449,7 @@ name: Terraform Plan
 on:
   pull_request:
     paths:
-      - 'terraform-app/**'
+      - 'terraform/**'
       - '.github/workflows/terraform-plan.yml'
 
 jobs:
@@ -475,12 +475,12 @@ jobs:
           aws-region: ${AWS_REGION}
 
       - name: Terraform Init
-        working-directory: terraform-app
+        working-directory: terraform
         run: |
           terraform init -backend-config=environments/\${{ matrix.environment }}-backend.hcl
 
       - name: Terraform Plan
-        working-directory: terraform-app
+        working-directory: terraform
         run: |
           terraform plan -var-file=environments/\${{ matrix.environment }}.tfvars -out=tfplan
 
@@ -488,7 +488,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: tfplan-\${{ matrix.environment }}
-          path: terraform-app/tfplan
+          path: terraform/tfplan
 EOF
 
 echo -e "${GREEN}   ✅ Created terraform-plan.yml${NC}"

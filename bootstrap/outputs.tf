@@ -244,7 +244,7 @@ output "next_steps" {
      - Prod: ${aws_iam_role.github_actions_prod.arn}
 
   5. Initialize application Terraform:
-     cd terraform-app/
+     cd terraform/
      terraform init -backend-config=environments/dev-backend.hcl
 
   6. Deploy application infrastructure:

@@ -9,7 +9,7 @@
 set -e
 
 BOOTSTRAP_DIR="bootstrap"
-TERRAFORM_DIR="terraform-app"
+TERRAFORM_DIR="terraform"
 ENVIRONMENTS=("dev" "test" "prod")
 
 echo "🔍 Reading bootstrap outputs..."

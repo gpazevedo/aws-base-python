@@ -212,19 +212,19 @@ sync-env:
 
 app-init-dev:
 	@echo "🔧 Initializing Terraform for dev environment..."
-	cd terraform-app && terraform init -backend-config=environments/dev-backend.hcl
+	cd terraform && terraform init -backend-config=environments/dev-backend.hcl
 
 app-plan-dev:
 	@echo "📋 Planning changes for dev environment..."
-	cd terraform-app && terraform plan -var-file=environments/dev.tfvars
+	cd terraform && terraform plan -var-file=environments/dev.tfvars
 
 app-apply-dev:
 	@echo "🚀 Applying changes to dev environment..."
-	cd terraform-app && terraform apply -var-file=environments/dev.tfvars
+	cd terraform && terraform apply -var-file=environments/dev.tfvars
 
 app-destroy-dev:
 	@echo "⚠️  Destroying dev environment infrastructure..."
-	cd terraform-app && terraform destroy -var-file=environments/dev.tfvars
+	cd terraform && terraform destroy -var-file=environments/dev.tfvars
 
 # =============================================================================
 # Application Commands - Test Environment
@@ -232,15 +232,15 @@ app-destroy-dev:
 
 app-init-test:
 	@echo "🔧 Initializing Terraform for test environment..."
-	cd terraform-app && terraform init -backend-config=environments/test-backend.hcl -reconfigure
+	cd terraform && terraform init -backend-config=environments/test-backend.hcl -reconfigure
 
 app-plan-test:
 	@echo "📋 Planning changes for test environment..."
-	cd terraform-app && terraform plan -var-file=environments/test.tfvars
+	cd terraform && terraform plan -var-file=environments/test.tfvars
 
 app-apply-test:
 	@echo "🚀 Applying changes to test environment..."
-	cd terraform-app && terraform apply -var-file=environments/test.tfvars
+	cd terraform && terraform apply -var-file=environments/test.tfvars
 
 # =============================================================================
 # Application Commands - Prod Environment
@@ -248,15 +248,15 @@ app-apply-test:
 
 app-init-prod:
 	@echo "🔧 Initializing Terraform for prod environment..."
-	cd terraform-app && terraform init -backend-config=environments/prod-backend.hcl -reconfigure
+	cd terraform && terraform init -backend-config=environments/prod-backend.hcl -reconfigure
 
 app-plan-prod:
 	@echo "📋 Planning changes for prod environment..."
-	cd terraform-app && terraform plan -var-file=environments/prod.tfvars
+	cd terraform && terraform plan -var-file=environments/prod.tfvars
 
 app-apply-prod:
 	@echo "🚀 Applying changes to prod environment..."
-	cd terraform-app && terraform apply -var-file=environments/prod.tfvars
+	cd terraform && terraform apply -var-file=environments/prod.tfvars
 
 # =============================================================================
 # Docker Commands
@@ -326,7 +326,7 @@ pre-commit-update:
 format-terraform:
 	@echo "🎨 Formatting Terraform files..."
 	terraform fmt -recursive bootstrap/
-	terraform fmt -recursive terraform-app/
+	terraform fmt -recursive terraform/
 
 format-all: format-terraform format-python
 	@echo "✅ Formatted all files"
@@ -334,7 +334,7 @@ format-all: format-terraform format-python
 validate:
 	@echo "✅ Validating Terraform configurations..."
 	cd bootstrap && terraform validate
-	cd terraform-app && terraform validate
+	cd terraform && terraform validate
 
 clean:
 	@echo "🧹 Cleaning artifacts..."

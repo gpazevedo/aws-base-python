@@ -52,13 +52,13 @@ make setup-backend
 **What it does**:
 1. Reads bootstrap outputs (`terraform_state_bucket`, `aws_region`)
 2. Generates backend config files for each environment:
-   - `terraform-app/environments/dev-backend.hcl`
-   - `terraform-app/environments/test-backend.hcl`
-   - `terraform-app/environments/prod-backend.hcl`
+   - `terraform/environments/dev-backend.hcl`
+   - `terraform/environments/test-backend.hcl`
+   - `terraform/environments/prod-backend.hcl`
 
 **Generated file example**:
 ```hcl
-# terraform-app/environments/dev-backend.hcl
+# terraform/environments/dev-backend.hcl
 bucket       = "my-project-terraform-state-123456789012"
 key          = "environments/dev/terraform.tfstate"
 region       = "us-east-1"

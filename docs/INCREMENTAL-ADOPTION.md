@@ -137,7 +137,7 @@ cd ..
 make setup-workflows
 
 # Deploy first Lambda
-cd terraform-app/
+cd terraform/
 terraform init -backend-config=environments/dev-backend.hcl
 terraform apply -var-file=environments/dev.tfvars
 ```
