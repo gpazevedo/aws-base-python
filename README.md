@@ -42,7 +42,39 @@ A production-ready Infrastructure as Code (IaC) template for bootstrapping AWS p
 - **AWS CLI** configured (`aws configure`)
 - **GitHub Repository** for your project
 - **uv** (for Python development): `curl -LsSf https://astral.sh/uv/install.sh | sh`
+- **tflint** (for Terraform linting): See installation instructions below
 - **Make** (optional, for convenience commands)
+
+### Installing tflint
+
+tflint is required for pre-commit hooks to validate Terraform code.
+
+**Linux/macOS:**
+```bash
+# Install to ~/.local/bin (no sudo required)
+mkdir -p ~/.local/bin
+cd /tmp
+wget https://github.com/terraform-linters/tflint/releases/latest/download/tflint_linux_amd64.zip
+unzip -o tflint_linux_amd64.zip
+mv tflint ~/.local/bin/
+chmod +x ~/.local/bin/tflint
+
+# Add to PATH (add to ~/.bashrc or ~/.zshrc for persistence)
+export PATH="$HOME/.local/bin:$PATH"
+
+# Verify installation
+tflint --version
+```
+
+**macOS (Homebrew):**
+```bash
+brew install tflint
+```
+
+**Windows:**
+```powershell
+choco install tflint
+```
 
 ---
 
@@ -168,7 +200,49 @@ Click **New environment** and define "production" and click **Configure environm
 
 ### 6. Quality Check Before Commits
 
-- **Setup code quality**: `make setup-pre-commit`
+Setup pre-commit hooks for automated code quality checks:
+
+```bash
+make setup-pre-commit
+```
+
+This installs hooks that automatically run before each commit:
+- **Ruff** - Python linting and formatting
+- **Pyright** - Python type checking
+- **Terraform fmt** - Terraform formatting
+- **tflint** - Terraform validation and linting
+
+**What happens when formatters modify files:**
+
+Pre-commit is configured with `fail_fast: true`, which means:
+1. If a formatter (ruff, terraform fmt) modifies files, the commit is stopped
+2. The modified files are left in your working directory
+3. You can review the changes with `git diff`
+4. Stage the changes and commit again: `git add . && git commit`
+
+**Example workflow:**
+```bash
+# First commit attempt - formatters modify files
+git commit -m "feat: Add new feature"
+# → Pre-commit runs, formats files, and FAILS
+# → Files are now formatted in your working directory
+
+# Review what was changed
+git diff
+
+# Stage the formatted files and commit again
+git add .
+git commit -m "feat: Add new feature"
+# → Pre-commit runs, no changes needed, SUCCEEDS
+```
+
+**Manual quality checks:**
+```bash
+make lint          # Run linting
+make lint-fix      # Auto-fix issues
+make typecheck     # Run type checking
+make test          # Run tests
+```
 
 ### 7. Generate GitHub Actions workflows
 

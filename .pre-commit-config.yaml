@@ -75,7 +75,9 @@ exclude: |
   )$
 
 # Fail fast - stop on first failure
-fail_fast: false
+# Set to true to stop immediately when a formatter makes changes
+# This helps identify which files were modified by formatters
+fail_fast: true
 
 # Minimum version
 minimum_pre_commit_version: '3.5.0'
