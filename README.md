@@ -1269,6 +1269,12 @@ This repository includes comprehensive documentation for all aspects of the boot
   - `docker-push.sh` - Build and push Docker images
   - `setup-pre-commit.sh` - Install code quality hooks
 
+- **[🚀 Release Please](docs/RELEASE-PLEASE.md)** - Automated release management
+  - Automatic version bumping and CHANGELOG generation
+  - Conventional Commits specification
+  - Release workflow and best practices
+  - Configuration and troubleshooting
+
 #### 📋 Quick Reference
 
 | Document | Purpose | When to Read |
@@ -1279,6 +1285,7 @@ This repository includes comprehensive documentation for all aspects of the boot
 | [INCREMENTAL-ADOPTION.md](docs/INCREMENTAL-ADOPTION.md) | Scaling strategy | Planning architecture evolution |
 | [PRE-COMMIT.md](docs/PRE-COMMIT.md) | Code quality setup | Setting up development environment |
 | [SCRIPTS.md](docs/SCRIPTS.md) | Automation reference | Using helper scripts |
+| [RELEASE-PLEASE.md](docs/RELEASE-PLEASE.md) | Release automation | Setting up releases and versioning |
 
 ### External Resources
 
