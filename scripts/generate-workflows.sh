@@ -107,6 +107,9 @@ jobs:
   deploy:
     runs-on: ubuntu-latest
     environment: dev
+    permissions:
+      id-token: write
+      contents: read
 
     steps:
       - name: Checkout code
@@ -155,6 +158,9 @@ jobs:
   deploy:
     runs-on: ubuntu-latest
     environment: production
+    permissions:
+      id-token: write
+      contents: read
 
     steps:
       - name: Checkout code
@@ -216,6 +222,9 @@ jobs:
   deploy:
     runs-on: ubuntu-latest
     environment: dev
+    permissions:
+      id-token: write
+      contents: read
 
     steps:
       - name: Checkout code
@@ -271,6 +280,9 @@ jobs:
   deploy:
     runs-on: ubuntu-latest
     environment: production
+    permissions:
+      id-token: write
+      contents: read
 
     steps:
       - name: Checkout code
@@ -339,6 +351,9 @@ jobs:
   deploy:
     runs-on: ubuntu-latest
     environment: dev
+    permissions:
+      id-token: write
+      contents: read
 
     steps:
       - name: Checkout code
@@ -395,6 +410,9 @@ jobs:
   deploy:
     runs-on: ubuntu-latest
     environment: production
+    permissions:
+      id-token: write
+      contents: read
 
     steps:
       - name: Checkout code
@@ -458,6 +476,9 @@ jobs:
     strategy:
       matrix:
         environment: [dev, prod]
+    permissions:
+      id-token: write
+      contents: read
 
     steps:
       - name: Checkout code
