@@ -168,7 +168,9 @@ make bootstrap-apply           # Deploy infrastructure
 
 ```bash
 make setup-terraform-backend  # Generate backend Terraform files
-make setup-terraform-lambda   # Generate example Lambda app Terraform files (optional)
+make setup-terraform-lambda   # Generate Lambda app Terraform files
+make app-init-dev             # Initialize Terraform for dev environment
+make app-apply-dev            # Applying changes to dev environment
 make sync-env                 # Sync to .env file (optional)
 ```
 
@@ -262,12 +264,12 @@ Now the repository includes GitHub Actions workflows that automatically:
 
 ### Local Testing
 
-Edit backend/pyproject.toml and change project name from my-project to your project name.
+Edit backend/api/pyproject.toml and change project name from my-project to your project name.
 
 #### 1. Test Python Backend Locally
 
 ```bash
-cd backend
+cd backend/api
 
 # Install dependencies
 uv sync
@@ -374,10 +376,10 @@ All Dockerfiles support building for both arm64 and amd64 architectures:
 
 ```bash
 # 1. Write your code
-vim backend/main.py
+vim backend/api/main.py
 
 # 2. Test locally
-cd backend && uv run python -c "from main import handler; print(handler({'name':'World'}, None))"
+cd backend/api && uv run python -c "from main import handler; print(handler({'name':'World'}, None))"
 
 # 3. Commit and push
 git add .
@@ -594,7 +596,7 @@ curl -X POST https://<function-url> \
 ┌─────────────────────────────────────────────────────────────┐
 │                     Local Development                       │
 │                                                             │
-│  1. Write code in backend/                                  │
+│  1. Write code in backend/api/ or backend/worker/           │
 │  2. Run tests: make test                                    │
 │  3. Test locally: uv run python -c "from main..."           │
 │  4. Test container: docker run -p 9000:8080                 │
@@ -659,11 +661,11 @@ enable_apprunner = false
 enable_eks       = false
 
 lambda_use_container_image = true
-ecr_repositories = ["api"]
+ecr_repositories = []  # Single repository (recommended)
 python_version = "3.13"
 ```
 
-**Result**: Lambda functions with ECR for container images
+**Result**: Lambda functions with single ECR repository for container images
 
 ---
 
@@ -726,6 +728,117 @@ python_version = "3.13"
 ```
 
 **Result**: Both Lambda and App Runner infrastructure
+
+---
+
+## 🏗️ Multi-Service Backend Structure
+
+This project supports a **multi-service backend architecture** where each service (API, worker, etc.) is organized in its own directory under `backend/`.
+
+### Directory Organization
+
+```
+backend/
+├── api/                   # API service (default)
+│   ├── main.py           # Lambda handler / app entry point
+│   ├── pyproject.toml    # Dependencies for API service
+│   ├── Dockerfile.lambda # Container definition
+│   └── ...
+└── worker/               # Worker service (optional)
+    ├── main.py           # Worker handler
+    ├── pyproject.toml    # Dependencies for worker service
+    ├── Dockerfile.lambda # Container definition
+    └── ...
+```
+
+### Working with Services
+
+Use the `SERVICE` variable with make commands to specify which service to build/deploy:
+
+```bash
+# Build API service (default)
+make docker-build SERVICE=api
+
+# Build worker service
+make docker-build SERVICE=worker
+
+# Push API to dev
+make docker-push-dev SERVICE=api
+
+# Push worker to dev
+make docker-push-dev SERVICE=worker
+```
+
+### Image Naming Convention
+
+Images are tagged with a hierarchical naming scheme that includes the service folder:
+
+**Format:** `{folder}/{env}/{folder}-{datetime}-{sha}`
+
+**Example for API service in dev:**
+```
+backend/api → my-project:backend/dev/api-20241118-162500-abc1234
+```
+
+**Three tags are created per build:**
+
+1. **Primary tag with timestamp:**
+   - `backend/dev/api-20241118-162500-abc1234` (unique, timestamped version)
+
+2. **Service latest:**
+   - `backend/dev/api-latest` (latest build for API in dev)
+
+3. **Environment latest:**
+   - `backend/dev/latest` (latest build for any service in dev)
+
+**Benefits:**
+- **Hierarchical organization:** Images are organized by folder structure
+- **Service isolation:** Clear separation between API, worker, and other services
+- **Timestamp tracking:** Know exactly when each image was built
+- **Git traceability:** SHA allows tracking back to source code
+- **Easy rollback:** Use `-latest` tags for quick rollbacks
+- **Environment safety:** Environment prefix prevents deploying dev to prod
+
+### Docker Build Arguments
+
+When building multi-service containers, the `SERVICE_FOLDER` build argument is automatically set:
+
+```bash
+# Example build command (done automatically by scripts)
+docker build \
+  --build-arg SERVICE_FOLDER=backend/api \
+  -f backend/api/Dockerfile.lambda \
+  -t my-project:backend/dev/api-latest \
+  backend/api
+```
+
+### Adding a New Service
+
+To add a new service (e.g., "scheduler"):
+
+1. **Create directory structure:**
+   ```bash
+   mkdir -p backend/scheduler
+   cp -r backend/api/* backend/scheduler/
+   ```
+
+2. **Customize the service:**
+   ```bash
+   cd backend/scheduler
+   vim main.py  # Implement scheduler logic
+   vim pyproject.toml  # Update dependencies
+   ```
+
+3. **Build and deploy:**
+   ```bash
+   make docker-build SERVICE=scheduler
+   make docker-push-dev SERVICE=scheduler
+   ```
+
+4. **Images will be tagged as:**
+   - `backend/dev/scheduler-20241118-162500-abc1234`
+   - `backend/dev/scheduler-latest`
+   - `backend/dev/latest`
 
 ---
 
@@ -855,15 +968,23 @@ aws-base/
 │       ├── api-gateway.tf     # API Gateway
 │       └── ...                # Other resources
 │
-├── backend/                   # Python backend application
-│   ├── __init__.py
-│   ├── main.py                # Lambda handler / application entry point
-│   ├── test_main.py           # Test suite
-│   ├── Dockerfile.lambda      # Lambda container image
-│   ├── Dockerfile.apprunner   # App Runner container image
-│   ├── Dockerfile.eks         # EKS container image
-│   ├── pyproject.toml         # Python dependencies + config
-│   └── uv.lock                # Locked dependencies
+├── backend/                   # Python backend application (multi-service)
+│   ├── api/                   # API service
+│   │   ├── __init__.py
+│   │   ├── main.py            # Lambda handler / application entry point
+│   │   ├── test_main.py       # Test suite
+│   │   ├── Dockerfile.lambda  # Lambda container image
+│   │   ├── Dockerfile.apprunner # App Runner container image
+│   │   ├── Dockerfile.eks     # EKS container image
+│   │   ├── pyproject.toml     # Python dependencies + config
+│   │   └── uv.lock            # Locked dependencies
+│   └── worker/                # Worker service (optional)
+│       ├── __init__.py
+│       ├── main.py            # Worker handler
+│       ├── test_main.py       # Test suite
+│       ├── Dockerfile.lambda  # Lambda container image
+│       ├── pyproject.toml     # Python dependencies + config
+│       └── uv.lock            # Locked dependencies
 │
 ├── scripts/
 │   ├── setup-terraform-backend.sh  # Generate backend configs

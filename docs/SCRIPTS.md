@@ -168,46 +168,66 @@ make docker-push-prod
 
 **What it does**:
 1. Reads bootstrap outputs (project name, AWS account, region)
-2. Authenticates to Amazon ECR
-3. Builds Docker image with multiple tags:
-   - `{env}-{timestamp}` - Unique build tag
-   - `{env}-latest` - Latest for environment
-   - `{git-sha}` - Git commit SHA
-4. Pushes all tags to ECR
+2. Detects service folder from Dockerfile path (e.g., `backend/api`)
+3. Authenticates to Amazon ECR
+4. Builds Docker image with `--build-arg SERVICE_FOLDER` parameter
+5. Creates multiple hierarchical tags:
+   - `{folder}/{env}/{service}-{datetime}-{sha}` - Unique build tag with timestamp
+   - `{folder}/{env}/{service}-latest` - Latest for this service
+   - `{folder}/{env}/latest` - Latest for environment
+6. Pushes all tags to ECR
 
 **Features**:
 - ✅ Auto-detects project configuration from bootstrap
+- ✅ **Hierarchical image tagging** organized by folder structure
+- ✅ **Timestamp-based versioning** for precise version tracking
 - ✅ Multi-tag support for rollback capabilities
 - ✅ Color-coded output for better visibility
 - ✅ Validates AWS credentials and Dockerfile existence
 - ✅ Git SHA tagging for traceability
+- ✅ **Multi-service support** via SERVICE_FOLDER build argument
+
+**New Image Tagging Format:**
+
+The script now uses a hierarchical tagging scheme:
+
+**Format:** `{folder}/{environment}/{service}-{datetime}-{git-sha}`
+
+**Example for backend/api service in dev:**
+```
+backend/dev/api-20241118-162500-abc1234  # Primary: folder/env/service-datetime-sha
+backend/dev/api-latest                   # Service latest
+backend/dev/latest                       # Environment latest
+```
 
 **Example output**:
 ```
 🐳 Docker Push Script
    Environment: dev
-   Dockerfile: Dockerfile.lambda
+   Service Folder: backend/api
+   Dockerfile: backend/api/Dockerfile.lambda
 
 ✅ Configuration:
    Project: my-api
-   Repository: my-api-my-api
-   ECR URL: 123456789012.dkr.ecr.us-east-1.amazonaws.com/my-api-my-api
+   Repository: my-api
+   ECR URL: 123456789012.dkr.ecr.us-east-1.amazonaws.com/my-api
    AWS Account: 123456789012
    AWS Region: us-east-1
+   Service: api
 
 🔐 Logging into Amazon ECR...
 ✅ Successfully logged into ECR
 
-🏗️  Building Docker image...
+🏗️  Building Docker image with SERVICE_FOLDER=backend/api...
 ✅ Docker image built successfully
 
-📤 Pushing images to ECR...
+📤 Pushing images to ECR with hierarchical tags...
 ✅ Successfully pushed images to ECR!
 
 📋 Image URIs:
-   123456789012.dkr.ecr.us-east-1.amazonaws.com/my-api-my-api:dev-20231114-162500
-   123456789012.dkr.ecr.us-east-1.amazonaws.com/my-api-my-api:dev-latest
-   123456789012.dkr.ecr.us-east-1.amazonaws.com/my-api-my-api:abc1234
+   123456789012.dkr.ecr.us-east-1.amazonaws.com/my-api:backend/dev/api-20241118-162500-abc1234
+   123456789012.dkr.ecr.us-east-1.amazonaws.com/my-api:backend/dev/api-latest
+   123456789012.dkr.ecr.us-east-1.amazonaws.com/my-api:backend/dev/latest
 ```
 
 ---
@@ -233,9 +253,9 @@ make setup-workflows
    - Test environment enabled?
 2. Reads IAM role ARNs for each environment (dev, test, prod)
 3. **Detects ECR repository configuration:**
-   - Looks for repos with "lambda" in name → uses for Lambda workflows
-   - Looks for repos with "eks" in name → uses for EKS workflows
-   - Falls back to first repo if specific names not found
+   - Uses single repository (when `ecr_repositories = []`)
+   - Applies hierarchical tagging based on service folder structure
+   - For legacy setups: looks for repos with "lambda" or "eks" in name
 4. Generates appropriate GitHub Actions workflows in `.github/workflows/`
 
 **Generated workflows**:
@@ -252,11 +272,13 @@ make setup-workflows
 - ✅ Builds and pushes Docker images to ECR
 - ✅ Deploys to appropriate service (Lambda/App Runner/EKS)
 - ✅ Environment-specific (dev, test, production)
-- ✅ **Advanced image tagging strategy:**
-  - Primary tag: `{env}-{service}-{git-sha-short}` (e.g., `dev-api-abc1234`)
-  - Service latest: `{env}-{service}-latest` (e.g., `dev-api-latest`)
-  - Environment latest: `{env}-latest` (e.g., `dev-latest`)
-- ✅ Separate ECR repos for Lambda and EKS (when configured)
+- ✅ **Hierarchical image tagging strategy:**
+  - Primary tag: `{folder}/{env}/{service}-{datetime}-{git-sha}` (e.g., `backend/dev/api-20241118-162500-abc1234`)
+  - Service latest: `{folder}/{env}/{service}-latest` (e.g., `backend/dev/api-latest`)
+  - Environment latest: `{folder}/{env}/latest` (e.g., `backend/dev/latest`)
+- ✅ Single ECR repository with hierarchical tags (recommended)
+- ✅ Multi-service support via SERVICE_FOLDER build argument
+- ✅ Timestamp-based versioning for precise tracking
 - ✅ arm64 architecture by default (AWS Graviton2)
 
 **Example: Lambda Dev Workflow**
@@ -289,8 +311,15 @@ jobs:
         uses: aws-actions/amazon-ecr-login@v2
 
       - name: Build and push Docker image
+        env:
+          SERVICE_FOLDER: backend/api
+          DATETIME: $(date +%Y%m%d-%H%M%S)
         run: |
-          docker build -f Dockerfile.lambda -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG .
+          docker build \
+            --build-arg SERVICE_FOLDER=$SERVICE_FOLDER \
+            -f $SERVICE_FOLDER/Dockerfile.lambda \
+            -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG \
+            $SERVICE_FOLDER
           docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
 
       - name: Update Lambda function
@@ -304,46 +333,45 @@ jobs:
 - After initial bootstrap deployment
 - After enabling/disabling compute options
 - After adding new environments
-- **After changing ECR repository configuration**
+- After changing ECR repository configuration
+- **After adding new services to backend/**
 
 **ECR Repository Detection**:
 
-The script automatically detects your ECR configuration and uses appropriate repos:
+The script automatically detects your ECR configuration:
 
-| ECR Configuration | Lambda Workflows Use | EKS Workflows Use |
-|-------------------|---------------------|-------------------|
-| `ecr_repositories = ["api"]` | First repo (e.g., `my-project-api`) | Same repo |
-| `ecr_repositories = ["api", "eks"]` | `my-project-api` | `my-project-eks` |
+| ECR Configuration | Tagging Strategy |
+|-------------------|------------------|
+| `ecr_repositories = []` (recommended) | Single repo with hierarchical tags (`backend/dev/api-latest`) |
+| `ecr_repositories = ["lambda", "eks"]` (legacy) | Separate repos with flat tags (`dev-api-latest`) |
 
-**Detection logic:**
-1. Searches for repo name containing "lambda" → uses for Lambda
-2. Searches for repo name containing "eks" → uses for EKS
-3. Falls back to first available repo if specific names not found
-
-**Example: Separate repos for Lambda and EKS**
+**Modern approach (single repository):**
 ```hcl
 # bootstrap/terraform.tfvars
-ecr_repositories = ["lambda", "eks"]
+ecr_repositories = []  # Recommended
 ```
 
-After applying and regenerating workflows:
-- Lambda workflows use: `123456789.dkr.ecr.us-east-1.amazonaws.com/my-project-lambda`
-- EKS workflows use: `123456789.dkr.ecr.us-east-1.amazonaws.com/my-project-eks`
+All services use single repository with hierarchical tags:
+- Repository: `123456789.dkr.ecr.us-east-1.amazonaws.com/my-project`
+- Tags: `backend/dev/api-20241118-162500-abc1234`, `backend/dev/worker-latest`, etc.
 
 **Image Tagging in Generated Workflows**:
 
-All generated workflows create three tags per build:
+All generated workflows create three hierarchical tags per build:
 ```bash
-# Example for commit abc1234, service "api", environment "dev"
-dev-api-abc1234     # Primary: environment-service-gitsha[0:7]
-dev-api-latest      # Latest for this service in this environment
-dev-latest          # Latest for this environment (any service)
+# Example for backend/api service, commit abc1234, environment "dev", built on 2024-11-18 at 16:25:00
+backend/dev/api-20241118-162500-abc1234  # Primary: folder/env/service-datetime-gitsha[0:7]
+backend/dev/api-latest                   # Latest for API service in dev
+backend/dev/latest                       # Latest for any service in dev
 ```
 
 Benefits:
-- Easy rollback: Use `dev-api-latest` to rollback to last known good
-- Version tracking: Git SHA in tag allows tracing to source code
-- Environment safety: Environment prefix prevents deploying dev to prod
+- **Hierarchical organization:** Images grouped by folder/environment/service
+- **Timestamp precision:** Exact build time for debugging and auditing
+- **Easy rollback:** Use `backend/dev/api-latest` to rollback to last known good
+- **Version tracking:** Git SHA in tag allows tracing to source code
+- **Environment safety:** Environment prefix prevents deploying dev to prod
+- **Multi-service support:** Clear separation between api, worker, and other services
 
 **Customization**:
 After generation, you can customize:
@@ -352,16 +380,118 @@ After generation, you can customize:
 - Deployment strategies (blue/green, canary)
 - Environment variables and secrets
 - Health checks and rollback conditions
-- **Image names**: Change `IMAGE_NAME` variable in workflow
+- **Service folders**: Change `SERVICE_FOLDER` variable in workflow
 
-**Example: Custom service name**
+**Example: Custom service**
 ```yaml
 # In generated workflow, change:
-IMAGE_NAME: api          # Default
+env:
+  SERVICE_FOLDER: backend/api     # Default
 # To:
-IMAGE_NAME: worker       # Custom
+env:
+  SERVICE_FOLDER: backend/worker  # Custom
 
-# Results in tags like: dev-worker-abc1234
+# Results in tags like: backend/dev/worker-20241118-162500-abc1234
+```
+
+---
+
+### Multi-Service Support
+
+The scripts now support building and deploying multiple services from a single repository.
+
+#### How It Works
+
+**Directory Structure:**
+```
+backend/
+├── api/                   # API service
+│   ├── main.py
+│   ├── pyproject.toml
+│   └── Dockerfile.lambda
+└── worker/               # Worker service
+    ├── main.py
+    ├── pyproject.toml
+    └── Dockerfile.lambda
+```
+
+**SERVICE_FOLDER Parameter:**
+
+All build scripts and workflows use the `SERVICE_FOLDER` build argument to:
+1. Identify which service to build
+2. Set the correct build context
+3. Generate hierarchical image tags
+
+**Example Docker Build:**
+```bash
+# Build API service
+docker build \
+  --build-arg SERVICE_FOLDER=backend/api \
+  -f backend/api/Dockerfile.lambda \
+  -t my-project:backend/dev/api-latest \
+  backend/api
+
+# Build worker service
+docker build \
+  --build-arg SERVICE_FOLDER=backend/worker \
+  -f backend/worker/Dockerfile.lambda \
+  -t my-project:backend/dev/worker-latest \
+  backend/worker
+```
+
+**Image Tag Hierarchy in Single ECR Repository:**
+
+All services share one ECR repository but are organized hierarchically:
+
+```
+my-project/  (single ECR repository)
+├── backend/dev/api-20241118-162500-abc1234
+├── backend/dev/api-latest
+├── backend/dev/worker-20241118-163000-def5678
+├── backend/dev/worker-latest
+├── backend/dev/latest                         # Points to most recent build
+├── backend/prod/api-20241118-164500-ghi9012
+└── backend/prod/api-latest
+```
+
+**Benefits:**
+- **Single repository:** Simpler IAM permissions and lifecycle policies
+- **Clear organization:** Folder structure mirrors code structure
+- **Service isolation:** Each service has its own tags
+- **Easy deployment:** Deploy specific service with `backend/dev/api-latest`
+- **Rollback support:** Service-specific rollback with `-latest` tags
+- **Audit trail:** Timestamp and git SHA in every tag
+
+#### Using Multi-Service with Scripts
+
+**docker-push.sh:**
+```bash
+# Push API service to dev
+./scripts/docker-push.sh dev my-project backend/api/Dockerfile.lambda
+
+# Push worker service to dev
+./scripts/docker-push.sh dev my-project backend/worker/Dockerfile.lambda
+```
+
+**generate-workflows.sh:**
+
+The workflow generator automatically creates workflows for each service folder it detects in `backend/`:
+
+```bash
+# Generates workflows for all services in backend/
+./scripts/generate-workflows.sh
+
+# Creates:
+# - .github/workflows/deploy-lambda-api-dev.yml
+# - .github/workflows/deploy-lambda-api-prod.yml
+# - .github/workflows/deploy-lambda-worker-dev.yml
+# - .github/workflows/deploy-lambda-worker-prod.yml
+```
+
+Each workflow sets `SERVICE_FOLDER` appropriately:
+```yaml
+env:
+  SERVICE_FOLDER: backend/api  # or backend/worker
 ```
 
 ---

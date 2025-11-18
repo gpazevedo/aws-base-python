@@ -9,9 +9,12 @@
 # - amd64: For local testing on x86_64 machines
 #
 # Build examples:
-#   docker build --platform=linux/arm64 -t myapp:arm64-latest .
-#   docker build --platform=linux/amd64 -t myapp:amd64-latest .
+#   docker build --platform=linux/arm64 --build-arg SERVICE_FOLDER=api -t myapp:latest .
+#   docker build --platform=linux/amd64 --build-arg SERVICE_FOLDER=worker -t myapp:latest .
 # =============================================================================
+
+# Service folder argument (defaults to 'api')
+ARG SERVICE_FOLDER=api
 
 # Multi-arch support - TARGETPLATFORM is automatically set by Docker BuildKit
 # When using --platform=linux/arm64, TARGETPLATFORM=linux/arm64
@@ -21,14 +24,17 @@ ARG TARGETPLATFORM
 FROM --platform=$TARGETPLATFORM ghcr.io/astral-sh/uv:latest AS uv
 FROM --platform=$TARGETPLATFORM public.ecr.aws/lambda/python:3.13
 
+# Re-declare ARG after FROM (Docker requirement)
+ARG SERVICE_FOLDER=api
+
 # Install uv - fast Python package installer (from correct architecture)
 COPY --from=uv /uv /usr/local/bin/uv
 
 # Set working directory
 WORKDIR ${LAMBDA_TASK_ROOT}
 
-# Copy dependency files
-COPY pyproject.toml uv.lock* ./
+# Copy dependency files from service folder
+COPY ${SERVICE_FOLDER}/pyproject.toml ${SERVICE_FOLDER}/uv.lock* ./
 
 # Install dependencies using uv
 # --frozen: Use exact versions from uv.lock
@@ -36,8 +42,11 @@ COPY pyproject.toml uv.lock* ./
 # --no-cache: Don't cache downloads (reduces image size)
 RUN uv sync --frozen --no-dev --no-cache
 
-# Copy application code (exclude test files)
-COPY main.py __init__.py ./
+# Copy all Python files from service folder (will exclude test files in next step)
+COPY ${SERVICE_FOLDER}/*.py ./
+
+# Remove test files
+RUN rm -f test_*.py
 
 # Lambda handler
 # Format: filename.function_name

@@ -308,10 +308,10 @@ make bootstrap-output  # Get role ARNs and configuration
 # - AWS_ROLE_ARN_PROD (in production environment)
 
 # 3. Write your application code
-vim backend/main.py
+vim backend/api/main.py
 
 # 4. Test locally
-cd backend && uv run python -c "from main import handler; print(handler({'name':'World'}, None))"
+cd backend/api && uv run python -c "from main import handler; print(handler({'name':'World'}, None))"
 
 # 5. Deploy via GitHub Actions
 git add .
@@ -429,43 +429,56 @@ See [terraform/README.md](../terraform/README.md) after running `make setup-terr
 
 ### ECR Repository Configuration
 
-The bootstrap creates ECR (Elastic Container Registry) repositories for your container images. You can configure this in two ways:
+The bootstrap creates ECR (Elastic Container Registry) repositories for your container images.
 
-#### Option 1: Single Repository (Default)
+#### Recommended: Single Repository with Hierarchical Tags
 
 **Configuration:**
 ```hcl
 # bootstrap/terraform.tfvars
-ecr_repositories = []  # Empty list
+ecr_repositories = []  # Empty list (recommended)
 ```
 
 **Result:**
 - Creates one repository: `{project_name}` (e.g., `my-project`)
-- All images (Lambda, EKS, App Runner) use the same repository
-- Good for: Simple projects, single service
+- All images (Lambda, EKS, App Runner, all services) use the same repository
+- Uses hierarchical image tags to organize images by folder/service
+- Good for: Most projects, simpler management, unified lifecycle policies
 
-**Image tagging strategy:**
+**Image tagging strategy with hierarchical tags:**
 ```
 my-project/
-├── dev-api-abc1234     # Dev Lambda
-├── dev-api-latest
-├── prod-api-def5678    # Prod Lambda
-├── prod-api-latest
-└── dev-latest
+├── backend/dev/api-20241118-162500-abc1234      # API service (timestamped)
+├── backend/dev/api-latest                       # API service latest
+├── backend/dev/worker-20241118-163000-def5678   # Worker service
+├── backend/dev/worker-latest                    # Worker service latest
+├── backend/dev/latest                           # Environment latest
+├── backend/prod/api-20241118-164500-ghi9012     # Prod API
+└── backend/prod/api-latest                      # Prod API latest
 ```
 
-#### Option 2: Separate Repositories (Recommended)
+**Benefits of single repository:**
+- Simpler IAM permissions (one repository to manage)
+- Unified image lifecycle policies
+- Easier ECR scanning configuration
+- Lower management overhead
+- Clear organization through hierarchical tags
+- Service isolation through folder-based tags
+
+#### Alternative: Separate Repositories (Legacy)
 
 **Configuration:**
 ```hcl
 # bootstrap/terraform.tfvars
-ecr_repositories = ["lambda", "eks"]
+ecr_repositories = ["lambda", "eks"]  # Not recommended for new projects
 ```
 
 **Result:**
 - Creates: `{project_name}-lambda` and `{project_name}-eks`
 - Separate repos for Lambda and EKS/Kubernetes images
-- Good for: Multiple services, different lifecycle policies
+- More complex IAM and lifecycle management
+
+**Note:** Separate repositories are still supported but not recommended for new projects. Use single repository with hierarchical tags instead.
 
 **Image tagging strategy:**
 ```
@@ -473,64 +486,73 @@ my-project-lambda/
 ├── dev-api-abc1234
 ├── dev-api-latest
 ├── dev-worker-xyz9876  # Additional Lambda
-├── dev-worker-latest
-└── prod-api-def5678
+└── dev-worker-latest
 
 my-project-eks/
 ├── dev-api-abc1234
-├── dev-frontend-xyz9876  # Frontend service
-└── dev-backend-abc1234   # Backend service
+└── dev-frontend-xyz9876  # Frontend service
 ```
-
-#### Option 3: Custom Repository Names
-
-**Configuration:**
-```hcl
-# bootstrap/terraform.tfvars
-ecr_repositories = ["api", "worker", "frontend", "backend"]
-```
-
-**Result:**
-- Creates multiple repos: `my-project-api`, `my-project-worker`, etc.
-- Fine-grained control over repository lifecycle policies
-- Good for: Microservices, complex architectures
 
 #### Image Tagging Convention
 
-The generated GitHub Actions workflows use this tagging convention:
+The generated GitHub Actions workflows use a hierarchical tagging convention:
 
-**Format:** `{environment}-{service}-{git-sha-short}`
+**Format:** `{folder}/{environment}/{service}-{datetime}-{git-sha-short}`
 
 **Tags created for each build:**
-1. **Primary tag:** `dev-api-abc1234` (environment-service-sha)
-2. **Service latest:** `dev-api-latest` (latest for this service in this environment)
-3. **Environment latest:** `dev-latest` (latest for this environment)
+1. **Primary tag with timestamp:** `backend/dev/api-20241118-162500-abc1234` (unique version)
+2. **Service latest:** `backend/dev/api-latest` (latest for this service in this environment)
+3. **Environment latest:** `backend/dev/latest` (latest for any service in this environment)
 
 **Benefits:**
-- Easy to identify deployed version
-- Simple rollback with `-latest` tags
-- Git SHA allows tracing back to code
-- Environment prefix prevents dev/prod confusion
+- **Hierarchical organization:** Images organized by folder structure (backend/api, backend/worker)
+- **Timestamp tracking:** Know exactly when each image was built
+- **Easy to identify deployed version:** Service name + timestamp + git SHA
+- **Simple rollback:** Use `-latest` tags for quick rollbacks
+- **Git traceability:** SHA allows tracking back to source code
+- **Environment safety:** Environment prefix prevents deploying dev to prod
+- **Multi-service support:** Clear separation between API, worker, and other services
+
+**Example for multi-service backend:**
+```
+# API service, dev environment, built on 2024-11-18
+backend/dev/api-20241118-162500-abc1234
+backend/dev/api-latest
+backend/dev/latest
+
+# Worker service, dev environment, built on 2024-11-18
+backend/dev/worker-20241118-163000-def5678
+backend/dev/worker-latest
+backend/dev/latest  # Same as above, points to latest build
+
+# API service, production environment
+backend/prod/api-20241118-164500-ghi9012
+backend/prod/api-latest
+backend/prod/latest
+```
 
 **Workflow Integration:**
 
-The `generate-workflows.sh` script automatically detects your ECR configuration:
-- Looks for repos with "lambda" in the name → uses for Lambda workflows
-- Looks for repos with "eks" in the name → uses for EKS workflows
-- Falls back to first available repo if specific names not found
+The `generate-workflows.sh` script automatically uses the single repository (when `ecr_repositories = []`) and applies hierarchical tags based on the service folder structure.
 
 **To change ECR configuration after bootstrap:**
 ```bash
+# Recommended: Keep single repository
+# bootstrap/terraform.tfvars
+ecr_repositories = []  # Single repository with hierarchical tags
+
+# If you need to migrate from separate repos to single repo:
 # 1. Edit bootstrap/terraform.tfvars
 vim bootstrap/terraform.tfvars
-# Add: ecr_repositories = ["lambda", "eks"]
+# Change: ecr_repositories = ["lambda", "eks"]
+# To: ecr_repositories = []
 
 # 2. Apply changes
 make bootstrap-plan   # Review
-make bootstrap-apply  # Create new repos
+make bootstrap-apply  # Updates to single repo
 
 # 3. Regenerate workflows
-make setup-workflows  # Picks up new repo names
+make setup-workflows  # Updates to use hierarchical tags
 ```
 
 ---

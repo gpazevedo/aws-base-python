@@ -4,6 +4,9 @@
 
 .PHONY: help bootstrap-create bootstrap-init bootstrap-plan bootstrap-apply bootstrap-output setup-terraform-backend sync-env
 
+# Service folder to use (defaults to 'api')
+SERVICE ?= api
+
 # Default target
 help:
 	@echo "AWS Bootstrap Infrastructure Commands"
@@ -30,16 +33,18 @@ help:
 	@echo "  make app-plan-dev            Plan application changes for dev"
 	@echo "  make app-apply-dev           Apply application infrastructure to dev"
 	@echo ""
-	@echo "Python Code Quality:"
+	@echo "Python Code Quality (SERVICE=api by default):"
 	@echo "  make lint                    Check code with Ruff"
 	@echo "  make lint-fix                Auto-fix issues with Ruff"
 	@echo "  make typecheck               Type check with Pyright"
 	@echo "  make test                    Run tests with pytest"
 	@echo "  make pre-commit-all          Run all pre-commit hooks"
+	@echo "  SERVICE=worker make lint     Run lint for specific service"
 	@echo ""
-	@echo "Docker:"
-	@echo "  make docker-build            Build Docker image (arm64 by default, set ARCH=amd64 for local)"
+	@echo "Docker (SERVICE=api by default):"
+	@echo "  make docker-build            Build Docker image (arm64 by default)"
 	@echo "  make docker-build-amd64      Build Docker image for amd64 (local testing)"
+	@echo "  SERVICE=worker make docker-build  Build specific service"
 	@echo "  make docker-push-dev         Push Docker image to dev ECR (always arm64)"
 	@echo "  make docker-push-test        Push Docker image to test ECR (always arm64)"
 	@echo "  make docker-push-prod        Push Docker image to prod ECR (always arm64)"
@@ -280,9 +285,11 @@ docker-build:
 	ARCH=$${ARCH:-arm64}; \
 	DOCKERFILE=$${DOCKERFILE:-Dockerfile.lambda}; \
 	echo "   Project: $${PROJECT_NAME}"; \
+	echo "   Service: $(SERVICE)"; \
 	echo "   Architecture: $${ARCH}"; \
 	echo "   Dockerfile: backend/$${DOCKERFILE}"; \
 	docker build \
+		--build-arg SERVICE_FOLDER=$(SERVICE) \
 		--platform=linux/$${ARCH} \
 		-t "$${PROJECT_NAME}:$${ARCH}-latest" \
 		-t "$${PROJECT_NAME}:latest" \
@@ -314,37 +321,37 @@ setup-pre-commit:
 	./scripts/setup-pre-commit.sh
 
 lint:
-	@echo "🔍 Checking code quality with Ruff..."
-	cd backend && uv run ruff check .
+	@echo "🔍 Checking code quality with Ruff (service: $(SERVICE))..."
+	cd backend/$(SERVICE) && uv run ruff check .
 
 lint-fix:
-	@echo "🔧 Auto-fixing issues with Ruff..."
-	cd backend && uv run ruff check --fix .
-	cd backend && uv run ruff format .
+	@echo "🔧 Auto-fixing issues with Ruff (service: $(SERVICE))..."
+	cd backend/$(SERVICE) && uv run ruff check --fix .
+	cd backend/$(SERVICE) && uv run ruff format .
 
 format-python:
-	@echo "🎨 Formatting Python code with Ruff..."
-	cd backend && uv run ruff format .
+	@echo "🎨 Formatting Python code with Ruff (service: $(SERVICE))..."
+	cd backend/$(SERVICE) && uv run ruff format .
 
 typecheck:
-	@echo "🔎 Type checking with Pyright..."
-	cd backend && uv run pyright .
+	@echo "🔎 Type checking with Pyright (service: $(SERVICE))..."
+	cd backend/$(SERVICE) && uv run pyright .
 
 test:
-	@echo "🧪 Running tests..."
-	cd backend && uv run pytest . -v --cov=. --cov-report=term-missing
+	@echo "🧪 Running tests (service: $(SERVICE))..."
+	cd backend/$(SERVICE) && uv run pytest . -v --cov=. --cov-report=term-missing
 
 test-watch:
-	@echo "👀 Running tests in watch mode..."
-	cd backend && uv run pytest-watch . -v
+	@echo "👀 Running tests in watch mode (service: $(SERVICE))..."
+	cd backend/$(SERVICE) && uv run pytest-watch . -v
 
 pre-commit-all:
-	@echo "🪝 Running pre-commit on all files..."
-	cd backend && uv run pre-commit run --all-files
+	@echo "🪝 Running pre-commit on all files (service: $(SERVICE))..."
+	cd backend/$(SERVICE) && uv run pre-commit run --all-files
 
 pre-commit-update:
-	@echo "⬆️  Updating pre-commit hooks..."
-	cd backend && uv run pre-commit autoupdate
+	@echo "⬆️  Updating pre-commit hooks (service: $(SERVICE))..."
+	cd backend/$(SERVICE) && uv run pre-commit autoupdate
 
 # =============================================================================
 # Terraform Utility Commands

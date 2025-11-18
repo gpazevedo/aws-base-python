@@ -9,9 +9,12 @@
 # - amd64: For local testing on x86_64 machines
 #
 # Build examples:
-#   docker build --platform=linux/arm64 -t myapp:arm64-latest .
-#   docker build --platform=linux/amd64 -t myapp:amd64-latest .
+#   docker build --platform=linux/arm64 --build-arg SERVICE_FOLDER=api -t myapp:latest .
+#   docker build --platform=linux/amd64 --build-arg SERVICE_FOLDER=worker -t myapp:latest .
 # =============================================================================
+
+# Service folder argument (defaults to 'api')
+ARG SERVICE_FOLDER=api
 
 # Multi-arch support - TARGETPLATFORM is automatically set by Docker BuildKit
 # When using --platform=linux/arm64, TARGETPLATFORM=linux/arm64
@@ -19,6 +22,9 @@
 # The python:3.13-slim multi-arch manifest will pull the correct variant
 ARG TARGETPLATFORM
 FROM --platform=$TARGETPLATFORM python:3.13-slim
+
+# Re-declare ARG after FROM (Docker requirement)
+ARG SERVICE_FOLDER=api
 
 # Install uv - fast Python package installer
 COPY --from=ghcr.io/astral-sh/uv:latest /uv /usr/local/bin/uv
@@ -32,16 +38,19 @@ WORKDIR /app
 #     gcc \
 #     && rm -rf /var/lib/apt/lists/*
 
-# Copy dependency files
-COPY pyproject.toml uv.lock* ./
+# Copy dependency files from service folder
+COPY ${SERVICE_FOLDER}/pyproject.toml ${SERVICE_FOLDER}/uv.lock* ./
 
 # Install dependencies using uv
 # --frozen: Use exact versions from uv.lock
 # --no-dev: Skip development dependencies
 RUN uv sync --frozen --no-dev
 
-# Copy application code (exclude test files)
-COPY main.py __init__.py ./
+# Copy all Python files from service folder (will exclude test files in next step)
+COPY ${SERVICE_FOLDER}/*.py ./
+
+# Remove test files
+RUN rm -f test_*.py
 
 # App Runner expects port 8080
 EXPOSE 8080

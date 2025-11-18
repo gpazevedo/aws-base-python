@@ -14,7 +14,7 @@
 resource "aws_iam_role" "lambda_execution" {
   count = var.enable_lambda ? 1 : 0
 
-  name        = "${var.project_name}-lambda-execution"
+  name        = "${var.project_name}-lambda-execution-role"
   description = "Base execution role for ${var.project_name} Lambda functions"
 
   assume_role_policy = jsonencode({
