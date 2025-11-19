@@ -1,7 +1,17 @@
-name: Deploy Lambda - Dev
+name: Deploy Lambda
 
 on:
   workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Environment to deploy to'
+        required: true
+        default: 'dev'
+        type: choice
+        options:
+          - dev
+          - production
+          - test
   push:
     branches: [main]
     paths:
@@ -10,6 +20,7 @@ env:
   PROJECT_NAME: ${{ secrets.PROJECT_NAME }}
   AWS_ACCOUNT_ID: ${{ secrets.AWS_ACCOUNT_ID }}
   AWS_REGION: ${{ secrets.AWS_REGION }}
+  ENVIRONMENT: ${{ inputs.environment || 'dev' }}
   # Array of services to deploy (only these services will be deployed as Lambda if changed)
   LAMBDAS: ${{ vars.LAMBDAS || '["api"]' }}
 
@@ -70,7 +81,7 @@ jobs:
     needs: detect-changes
     if: ${{ needs.detect-changes.outputs.services != '[]' }}
     runs-on: ubuntu-latest
-    environment: dev
+    environment: ${{ inputs.environment || 'dev' }}
     permissions:
       id-token: write
       contents: read
@@ -85,20 +96,20 @@ jobs:
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v4
         with:
-          role-to-assume: arn:aws:iam::${{ env.AWS_ACCOUNT_ID }}:role/${{ env.PROJECT_NAME }}-github-actions-dev
+          role-to-assume: arn:aws:iam::${{ env.AWS_ACCOUNT_ID }}:role/${{ env.PROJECT_NAME }}-github-actions-${{ env.ENVIRONMENT }}
           aws-region: ${{ env.AWS_REGION }}
 
       - name: Build and push Lambda Docker image
         run: |
           # Use centralized docker-push.sh script for consistent builds
-          ./scripts/docker-push.sh dev ${{ matrix.service }} Dockerfile.lambda
+          ./scripts/docker-push.sh ${{ env.ENVIRONMENT }} ${{ matrix.service }} Dockerfile.lambda
 
       - name: Update Lambda function
         run: |
           # Use the service-environment-latest tag for Lambda deployments
           ECR_REGISTRY="${{ env.AWS_ACCOUNT_ID }}.dkr.ecr.${{ env.AWS_REGION }}.amazonaws.com"
-          IMAGE_URI="${ECR_REGISTRY}/${{ env.PROJECT_NAME }}:${{ matrix.service }}-dev-latest"
+          IMAGE_URI="${ECR_REGISTRY}/${{ env.PROJECT_NAME }}:${{ matrix.service }}-${{ env.ENVIRONMENT }}-latest"
 
           aws lambda update-function-code \
-            --function-name ${{ env.PROJECT_NAME }}-dev-${{ matrix.service }} \
+            --function-name ${{ env.PROJECT_NAME }}-${{ env.ENVIRONMENT }}-${{ matrix.service }} \
             --image-uri "${IMAGE_URI}"
