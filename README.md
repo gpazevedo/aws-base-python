@@ -985,28 +985,31 @@ aws-base/
 │   │   ├── __init__.py
 │   │   ├── main.py            # Lambda handler / application entry point
 │   │   ├── test_main.py       # Test suite
-│   │   ├── Dockerfile.lambda  # Lambda container image
-│   │   ├── Dockerfile.apprunner # App Runner container image
-│   │   ├── Dockerfile.eks     # EKS container image
 │   │   ├── pyproject.toml     # Python dependencies + config
 │   │   └── uv.lock            # Locked dependencies
-│   └── worker/                # Worker service (optional)
-│       ├── __init__.py
-│       ├── main.py            # Worker handler
-│       ├── test_main.py       # Test suite
-│       ├── Dockerfile.lambda  # Lambda container image
-│       ├── pyproject.toml     # Python dependencies + config
-│       └── uv.lock            # Locked dependencies
+│   ├── worker/                # Worker service (optional)
+│   │   ├── __init__.py
+│   │   ├── main.py            # Worker handler
+│   │   ├── test_main.py       # Test suite
+│   │   ├── pyproject.toml     # Python dependencies + config
+│   │   └── uv.lock            # Locked dependencies
+│   ├── Dockerfile.lambda      # Shared Lambda container (uses SERVICE_FOLDER arg)
+│   ├── Dockerfile.apprunner   # Shared App Runner container
+│   └── Dockerfile.eks         # Shared EKS container
 │
 ├── scripts/
 │   ├── setup-terraform-backend.sh  # Generate backend configs
-│   ├── generate-workflows.sh       # Generate GitHub Actions
+│   ├── setup-terraform-lambda.sh   # Generate Lambda Terraform files
+│   ├── generate-workflows.sh       # Generate GitHub Actions workflows
+│   ├── docker-push.sh              # Build and push Docker images to ECR
 │   ├── sync-tfvars-to-env.py       # Sync terraform vars to .env
 │   └── setup-pre-commit.sh         # Setup pre-commit hooks
 │
 ├── docs/
 │   ├── INCREMENTAL-ADOPTION.md     # Guidance on infrastructure placement
 │   ├── TERRAFORM-BOOTSTRAP.md      # Bootstrap deep dive
+│   ├── INSTALLATION.md             # Tool installation guide
+│   ├── DOCKER-MULTIARCH.md         # Multi-architecture Docker builds
 │   ├── PRE-COMMIT.md               # Code quality setup
 │   └── SCRIPTS.md                  # Scripts documentation
 │
