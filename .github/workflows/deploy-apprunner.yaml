@@ -22,7 +22,7 @@ env:
   AWS_REGION: ${{ secrets.AWS_REGION }}
   ENVIRONMENT: ${{ inputs.environment || 'dev' }}
   # Array of services to deploy (only these services will be deployed as App Runner if changed)
-  APPRUNNER_SERVICES: ${{ vars.APPRUNNER_SERVICES || '["api"]' }}
+  APPRUNNER_SERVICES: ${{ vars.APPRUNNER_SERVICES }}
 
 jobs:
   # Detect which services changed
@@ -63,8 +63,6 @@ jobs:
 
             # Check if this service has changes in:
             # - backend/$service/**
-            # - backend/Dockerfile.apprunner
-            # - .github/workflows/**
             if echo "$CHANGED_FILES" | grep -qE "(^backend/$service/)"; then
               echo "  ✓ Service $service has changes"
               CHANGED_SERVICES=$(echo "$CHANGED_SERVICES" | jq -c ". + [\"$service\"]")
