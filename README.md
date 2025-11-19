@@ -37,6 +37,8 @@ A production-ready Infrastructure as Code (IaC) template for bootstrapping AWS p
 
 ## 📋 Prerequisites
 
+**📚 For detailed installation instructions**, see [INSTALLATION.md](docs/INSTALLATION.md).
+
 - **AWS Account** with administrative access
 - **Terraform** >= 1.13.0
 - **AWS CLI** configured (`aws configure`)
@@ -44,39 +46,6 @@ A production-ready Infrastructure as Code (IaC) template for bootstrapping AWS p
 - **uv** (for Python development): `curl -LsSf https://astral.sh/uv/install.sh | sh`
 - **tflint** (for Terraform linting): See installation instructions below
 - **Make** (optional, for convenience commands)
-
-### Installing tflint
-
-tflint is required for pre-commit hooks to validate Terraform code.
-
-**Linux/macOS:**
-```bash
-# Install to ~/.local/bin (no sudo required)
-mkdir -p ~/.local/bin
-cd /tmp
-wget https://github.com/terraform-linters/tflint/releases/latest/download/tflint_linux_amd64.zip
-unzip -o tflint_linux_amd64.zip
-mv tflint ~/.local/bin/
-chmod +x ~/.local/bin/tflint
-
-# Add to PATH (add to ~/.bashrc or ~/.zshrc for persistence)
-export PATH="$HOME/.local/bin:$PATH"
-
-# Verify installation
-tflint --version
-```
-
-**macOS (Homebrew):**
-```bash
-brew install tflint
-```
-
-**Windows:**
-```powershell
-choco install tflint
-```
-
----
 
 ## 🏗️ Architecture
 
@@ -166,15 +135,29 @@ make bootstrap-apply           # Deploy infrastructure
 
 ### 4. Deploy App (Lambda) Infrastructure
 
+**⚠️ Important: Build and push Docker image FIRST before deploying infrastructure!**
+
 ```bash
+# Step 1: Generate Terraform configuration
 make setup-terraform-backend  # Generate backend Terraform files
 make setup-terraform-lambda   # Generate Lambda app Terraform files
+
+# Step 2: Build and push Docker image to ECR (REQUIRED before terraform apply)
+# Manual build and push with docker-push.sh (one-step solution)
+./scripts/docker-push.sh dev api Dockerfile.lambda
+#   - Automatically detects CPU architecture (x86_64/arm64)
+#   - Auto-installs QEMU if needed for cross-platform builds
+#   - Builds for arm64 (AWS Graviton2)
+#   - Pushes with hierarchical tags: api/dev/*, api/dev/api-latest, api/dev/latest
+
+# Step 3: Deploy infrastructure
 make app-init-dev             # Initialize Terraform for dev environment
-make app-apply-dev            # Applying changes to dev environment
+make app-plan-dev             # Review what will be created
+make app-apply-dev            # Deploy Lambda function and resources
 make sync-env                 # Sync to .env file (optional)
 ```
 
-This creates ready-to-use Terraform files in `terraform/` for deploying Lambda functions with container images. See [Setting Up Application Infrastructure](docs/TERRAFORM-BOOTSTRAP.md#-setting-up-application-infrastructure) for details.
+This creates Terraform files in `terraform/` for deploying Lambda functions with container images. The Lambda function will reference the image tag `api/dev/latest` from your ECR repository. See [Setting Up Application Infrastructure](docs/TERRAFORM-BOOTSTRAP.md#-setting-up-application-infrastructure) for details.
 
 ### 5. Configure Your GitHub Repository
 
@@ -425,27 +408,38 @@ git push origin v1.0.0
 
 ```bash
 # ============================================================================
-# STEP 1: Enable arm64 building (x86_64 machines only)
+# STEP 1: Build and Push Docker Image (Simplified - Recommended)
 # ============================================================================
-# One-time setup: Install QEMU for cross-platform builds
+# One-step solution: Auto-detects architecture, installs QEMU if needed, builds and pushes
+./scripts/docker-push.sh dev api Dockerfile.lambda
+
+# This command automatically:
+#   - Detects if you're on x86_64 or arm64
+#   - Installs QEMU if needed (one-time setup)
+#   - Builds for arm64 (AWS Graviton2)
+#   - Pushes with hierarchical tags to ECR
+
+# ============================================================================
+# STEP 1 Alternative: Manual Build Steps (Advanced)
+# ============================================================================
+# If you prefer step-by-step control:
+
+# 1a. Enable arm64 building (x86_64 machines only)
 docker run --privileged --rm tonistiigi/binfmt --install all
 
-# ============================================================================
-# STEP 2: Build and Push Docker Image
-# ============================================================================
-# Build Docker image for arm64 (production architecture)
-make docker-build
+# 1b. Build Docker image for arm64
+make docker-build SERVICE=api
 
-# Push image to ECR dev repository
+# 1c. Push image to ECR
 make docker-push-dev
 
-# Verify image was pushed successfully
+# Verify image was pushed successfully (hierarchical tags: api/dev/*)
 aws ecr describe-images \
   --repository-name my-project \
-  --query 'imageDetails[?imageTags[?contains(@, `dev`)]]'
+  --query 'imageDetails[?imageTags[?contains(@, `api/dev`)]]'
 
 # ============================================================================
-# STEP 3: Deploy Infrastructure with Terraform
+# STEP 2: Deploy Infrastructure with Terraform
 # ============================================================================
 # Initialize Terraform (only needed once)
 make app-init-dev
@@ -457,7 +451,7 @@ make app-plan-dev
 make app-apply-dev
 
 # ============================================================================
-# STEP 4: Test
+# STEP 3: Test
 # ============================================================================
 # Get Lambda Function URL
 LAMBDA_URL=$(cd terraform && terraform output -raw lambda_function_url)
@@ -470,7 +464,10 @@ curl -X POST $LAMBDA_URL \
 
 **Important:**
 - You must have AWS credentials configured locally
-- Image must exist in ECR before running terraform apply
+- **⚠️ Docker image MUST exist in ECR before running `make app-apply-dev`**
+  - The Lambda function will reference: `{ecr-repo}:api/dev/latest`
+  - Build and push first: `make docker-build && make docker-push-dev`
+  - Or deploy via GitHub Actions (recommended)
 - Use GitHub Actions for production deployments
 
 </details>
@@ -550,7 +547,7 @@ curl -X POST https://<function-url> \
 ┌─────────────────────────────────────────────────────────────┐
 │  PHASE 2: Development & Testing                             │
 │                                                             │
-│  1. Write code in backend/main.py                           │
+│  1. Write code in backend/api/ or backend/worker/           │
 │  2. Test locally: uv run python -c "from main..."           │
 │  3. Run tests: make test                                    │
 │  4. Test container: make docker-build-amd64                 │
@@ -777,13 +774,13 @@ Images are tagged with a hierarchical naming scheme that includes the service fo
 
 **Example for API service in dev:**
 ```
-backend/api → my-project:backend/dev/api-20241118-162500-abc1234
+backend/api → my-project:backend/dev/api-2025-11-18-16-25-abc1234
 ```
 
 **Three tags are created per build:**
 
 1. **Primary tag with timestamp:**
-   - `backend/dev/api-20241118-162500-abc1234` (unique, timestamped version)
+   - `backend/dev/api-2025-11-18-16-25-abc1234` (unique, timestamped version)
 
 2. **Service latest:**
    - `backend/dev/api-latest` (latest build for API in dev)
@@ -836,7 +833,7 @@ To add a new service (e.g., "scheduler"):
    ```
 
 4. **Images will be tagged as:**
-   - `backend/dev/scheduler-20241118-162500-abc1234`
+   - `backend/dev/scheduler-2025-11-18-16-25-abc1234`
    - `backend/dev/scheduler-latest`
    - `backend/dev/latest`
 

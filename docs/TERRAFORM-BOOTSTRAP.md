@@ -448,12 +448,12 @@ ecr_repositories = []  # Empty list (recommended)
 **Image tagging strategy with hierarchical tags:**
 ```
 my-project/
-├── backend/dev/api-20241118-162500-abc1234      # API service (timestamped)
+├── backend/dev/api-2025-11-18-16-25-abc1234     # API service (timestamped)
 ├── backend/dev/api-latest                       # API service latest
-├── backend/dev/worker-20241118-163000-def5678   # Worker service
+├── backend/dev/worker-2025-11-18-16-30-def5678  # Worker service
 ├── backend/dev/worker-latest                    # Worker service latest
 ├── backend/dev/latest                           # Environment latest
-├── backend/prod/api-20241118-164500-ghi9012     # Prod API
+├── backend/prod/api-2025-11-18-16-45-ghi9012    # Prod API
 └── backend/prod/api-latest                      # Prod API latest
 ```
 
@@ -500,7 +500,7 @@ The generated GitHub Actions workflows use a hierarchical tagging convention:
 **Format:** `{folder}/{environment}/{service}-{datetime}-{git-sha-short}`
 
 **Tags created for each build:**
-1. **Primary tag with timestamp:** `backend/dev/api-20241118-162500-abc1234` (unique version)
+1. **Primary tag with timestamp:** `backend/dev/api-2025-11-18-16-25-abc1234` (unique version)
 2. **Service latest:** `backend/dev/api-latest` (latest for this service in this environment)
 3. **Environment latest:** `backend/dev/latest` (latest for any service in this environment)
 
@@ -515,18 +515,18 @@ The generated GitHub Actions workflows use a hierarchical tagging convention:
 
 **Example for multi-service backend:**
 ```
-# API service, dev environment, built on 2024-11-18
-backend/dev/api-20241118-162500-abc1234
+# API service, dev environment, built on 2025-11-18
+backend/dev/api-2025-11-18-16-25-abc1234
 backend/dev/api-latest
 backend/dev/latest
 
-# Worker service, dev environment, built on 2024-11-18
-backend/dev/worker-20241118-163000-def5678
+# Worker service, dev environment, built on 2025-11-18
+backend/dev/worker-2025-11-18-16-30-def5678
 backend/dev/worker-latest
 backend/dev/latest  # Same as above, points to latest build
 
 # API service, production environment
-backend/prod/api-20241118-164500-ghi9012
+backend/prod/api-2025-11-18-16-45-ghi9012
 backend/prod/api-latest
 backend/prod/latest
 ```

@@ -27,11 +27,18 @@ else
   # Read configuration from bootstrap
   PROJECT_NAME=$(grep '^project_name' "$BOOTSTRAP_DIR/terraform.tfvars" | cut -d'=' -f2 | cut -d'#' -f1 | tr -d ' "')
   AWS_REGION=$(grep '^aws_region' "$BOOTSTRAP_DIR/terraform.tfvars" | cut -d'=' -f2 | cut -d'#' -f1 | tr -d ' "')
+  GITHUB_ORG=$(grep '^github_org' "$BOOTSTRAP_DIR/terraform.tfvars" | cut -d'=' -f2 | cut -d'#' -f1 | tr -d ' "')
+  GITHUB_REPO=$(grep '^github_repo' "$BOOTSTRAP_DIR/terraform.tfvars" | cut -d'=' -f2 | cut -d'#' -f1 | tr -d ' "')
 fi
+
+# Set defaults if not found
+: ${GITHUB_ORG:="your-org"}
+: ${GITHUB_REPO:="your-repo"}
 
 echo "📋 Configuration:"
 echo "   Project: $PROJECT_NAME"
 echo "   Region: $AWS_REGION"
+echo "   GitHub: $GITHUB_ORG/$GITHUB_REPO"
 echo ""
 
 # Create terraform directory if it doesn't exist
@@ -174,7 +181,8 @@ resource "aws_lambda_function" "api" {
 
   # Container image configuration
   package_type = "Image"
-  image_uri    = "${data.aws_ecr_repository.app.repository_url}:${var.environment}-latest"
+  # Using hierarchical tag format: api/{environment}/latest
+  image_uri    = "${data.aws_ecr_repository.app.repository_url}:api/${var.environment}/latest"
 
   # Resource configuration
   memory_size = var.lambda_memory_size
@@ -201,11 +209,13 @@ resource "aws_lambda_function" "api" {
     Description = "Main API Lambda function"
   }
 
-  # Note: This will fail on first apply if no image exists in ECR
-  # Build and push your Docker image first: make docker-push-dev
+  # Note: Image must exist in ECR before first apply
+  # Build and push via GitHub Actions or manually:
+  #   1. Build: cd backend && docker build --build-arg SERVICE_FOLDER=api --platform linux/arm64 -f Dockerfile.lambda -t myapp:latest .
+  #   2. Push: Use GitHub Actions workflow or 'make docker-push-dev'
   lifecycle {
     ignore_changes = [
-      image_uri  # Allow image updates without Terraform
+      image_uri  # Allow image updates without Terraform (managed by CI/CD)
     ]
   }
 }
@@ -388,7 +398,7 @@ for ENV in "${ENVIRONMENTS[@]}"; do
 project_name = "${PROJECT_NAME}"
 environment  = "${ENV}"
 aws_region   = "${AWS_REGION}"
-github_repo  = "your-org/your-repo"  # TODO: Update with your GitHub repo
+github_repo  = "${GITHUB_ORG}/${GITHUB_REPO}"  # From bootstrap configuration
 
 # ECR Repository (created by bootstrap)
 ecr_repository_name = "${PROJECT_NAME}"  # Must match bootstrap configuration

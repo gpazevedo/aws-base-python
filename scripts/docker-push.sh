@@ -1,9 +1,12 @@
 #!/bin/bash
 # =============================================================================
-# Push Docker Image to ECR
+# Build and Push Docker Image to ECR
 # =============================================================================
-# This script builds and pushes a Docker image to Amazon ECR
-# Usage: ./docker-push.sh [environment] [repository-name] [dockerfile]
+# This script builds and pushes a Docker image to Amazon ECR with hierarchical tagging
+# Usage: ./docker-push.sh [environment] [service] [dockerfile]
+# Examples:
+#   ./docker-push.sh dev api Dockerfile.lambda
+#   ./docker-push.sh prod worker Dockerfile.lambda
 # =============================================================================
 
 set -e
@@ -17,22 +20,74 @@ NC='\033[0m' # No Color
 
 # Parse arguments
 ENVIRONMENT="${1:-dev}"
-REPOSITORY_NAME="${2:-}"
+SERVICE="${2:-api}"
 DOCKERFILE="${3:-Dockerfile.lambda}"
 
 # Validate environment
 if [[ ! "$ENVIRONMENT" =~ ^(dev|test|prod)$ ]]; then
   echo -e "${RED}❌ Error: Invalid environment '${ENVIRONMENT}'${NC}"
-  echo "   Usage: $0 [dev|test|prod] [repository-name] [dockerfile]"
+  echo "   Usage: $0 [dev|test|prod] [service] [dockerfile]"
   exit 1
 fi
 
-echo -e "${BLUE}🐳 Docker Push Script${NC}"
+echo -e "${BLUE}🐳 Docker Build & Push Script${NC}"
 echo "   Environment: ${ENVIRONMENT}"
+echo "   Service: ${SERVICE}"
 echo "   Dockerfile: ${DOCKERFILE}"
 echo ""
 
-# Check if bootstrap directory exists
+# =============================================================================
+# Detect CPU Architecture and Setup QEMU if needed
+# =============================================================================
+HOST_ARCH=$(uname -m)
+TARGET_ARCH="arm64"  # Always build for arm64 (AWS Graviton2)
+
+echo -e "${BLUE}🖥️  Detecting host architecture...${NC}"
+echo "   Host CPU: ${HOST_ARCH}"
+echo "   Target: ${TARGET_ARCH} (AWS Graviton2)"
+echo ""
+
+# Check if we need QEMU (cross-platform build)
+NEED_QEMU=false
+if [[ "$HOST_ARCH" == "x86_64" ]] || [[ "$HOST_ARCH" == "amd64" ]]; then
+  NEED_QEMU=true
+  echo -e "${YELLOW}⚠️  Cross-platform build detected (x86_64 → arm64)${NC}"
+  echo "   QEMU emulation required for arm64 builds"
+  echo ""
+
+  # Check if QEMU is already installed
+  if docker buildx inspect --bootstrap 2>/dev/null | grep -q "linux/arm64"; then
+    echo -e "${GREEN}✅ QEMU already installed and configured${NC}"
+  else
+    echo -e "${YELLOW}📦 Installing QEMU for cross-platform builds...${NC}"
+    echo "   This is a one-time setup"
+    echo ""
+
+    # Install QEMU emulation
+    docker run --privileged --rm tonistiigi/binfmt --install all
+
+    if [ $? -eq 0 ]; then
+      echo -e "${GREEN}✅ QEMU installed successfully${NC}"
+    else
+      echo -e "${RED}❌ Error: Failed to install QEMU${NC}"
+      echo "   You can install it manually with:"
+      echo "   docker run --privileged --rm tonistiigi/binfmt --install all"
+      exit 1
+    fi
+  fi
+  echo ""
+elif [[ "$HOST_ARCH" == "aarch64" ]] || [[ "$HOST_ARCH" == "arm64" ]]; then
+  echo -e "${GREEN}✅ Native arm64 build - no emulation needed${NC}"
+  echo ""
+else
+  echo -e "${YELLOW}⚠️  Unknown architecture: ${HOST_ARCH}${NC}"
+  echo "   Attempting build anyway..."
+  echo ""
+fi
+
+# =============================================================================
+# Read Bootstrap Configuration
+# =============================================================================
 BOOTSTRAP_DIR="bootstrap"
 if [ ! -d "$BOOTSTRAP_DIR" ]; then
   echo -e "${RED}❌ Error: Bootstrap directory not found: $BOOTSTRAP_DIR${NC}"
@@ -40,7 +95,6 @@ if [ ! -d "$BOOTSTRAP_DIR" ]; then
   exit 1
 fi
 
-# Read bootstrap outputs
 echo -e "${BLUE}📖 Reading bootstrap outputs...${NC}"
 cd "$BOOTSTRAP_DIR"
 
@@ -61,39 +115,50 @@ fi
 # Get AWS region
 AWS_REGION=$(terraform output -raw aws_region 2>/dev/null || echo "us-east-1")
 
-# Get ECR repositories
+# Get ECR repositories (use single repository)
 ECR_REPOS_JSON=$(terraform output -json ecr_repositories 2>/dev/null || echo "{}")
+ECR_REPOSITORY=$(echo "$ECR_REPOS_JSON" | jq -r 'keys[]' | head -1)
+
+# Fallback to project name if no repos found
+if [ -z "$ECR_REPOSITORY" ]; then
+  ECR_REPOSITORY="${PROJECT_NAME}"
+fi
 
 cd ..
 
-# Determine repository name
-if [ -z "$REPOSITORY_NAME" ]; then
-  # If no repository name provided, use project name
-  REPOSITORY_NAME="$PROJECT_NAME"
-fi
-
-# Build full ECR repository URL
-FULL_REPO_NAME="${PROJECT_NAME}-${REPOSITORY_NAME}"
-ECR_URL="${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/${FULL_REPO_NAME}"
+# Build ECR URL
+ECR_URL="${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/${ECR_REPOSITORY}"
 
 echo -e "${GREEN}✅ Configuration:${NC}"
 echo "   Project: ${PROJECT_NAME}"
-echo "   Repository: ${FULL_REPO_NAME}"
+echo "   ECR Repository: ${ECR_REPOSITORY}"
 echo "   ECR URL: ${ECR_URL}"
 echo "   AWS Account: ${AWS_ACCOUNT_ID}"
 echo "   AWS Region: ${AWS_REGION}"
 echo ""
 
-# Check if Dockerfile exists
-if [ ! -f "$DOCKERFILE" ]; then
-  echo -e "${RED}❌ Error: Dockerfile not found: $DOCKERFILE${NC}"
+# =============================================================================
+# Validate Dockerfile and Service
+# =============================================================================
+if [ ! -f "backend/$DOCKERFILE" ]; then
+  echo -e "${RED}❌ Error: Dockerfile not found: backend/$DOCKERFILE${NC}"
   echo ""
   echo "Available Dockerfiles:"
-  ls -1 Dockerfile.* 2>/dev/null || echo "  None found"
+  ls -1 backend/Dockerfile.* 2>/dev/null || echo "  None found"
   exit 1
 fi
 
+if [ ! -d "backend/$SERVICE" ]; then
+  echo -e "${RED}❌ Error: Service directory not found: backend/$SERVICE${NC}"
+  echo ""
+  echo "Available services:"
+  ls -d backend/*/ 2>/dev/null | xargs -n1 basename || echo "  None found"
+  exit 1
+fi
+
+# =============================================================================
 # Login to ECR
+# =============================================================================
 echo -e "${BLUE}🔐 Logging into Amazon ECR...${NC}"
 aws ecr get-login-password --region "$AWS_REGION" | \
   docker login --username AWS --password-stdin "${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com"
@@ -107,22 +172,34 @@ fi
 echo -e "${GREEN}✅ Successfully logged into ECR${NC}"
 echo ""
 
-# Build Docker image (always use arm64 for production)
-echo -e "${BLUE}🏗️  Building Docker image for arm64 (production)...${NC}"
-IMAGE_TAG="${ENVIRONMENT}-$(date +%Y%m%d-%H%M%S)"
+# =============================================================================
+# Build Docker Image
+# =============================================================================
+echo -e "${BLUE}🏗️  Building Docker image for ${TARGET_ARCH}...${NC}"
+
+# Generate timestamp and git SHA
+TIMESTAMP=$(date -u +%Y-%m-%d-%H-%M)
 GIT_SHA=$(git rev-parse --short HEAD 2>/dev/null || echo "local")
-ARCH="arm64"
+
+# Hierarchical tag format: service/environment/service-datetime-sha
+PRIMARY_TAG="${SERVICE}/${ENVIRONMENT}/${SERVICE}-${TIMESTAMP}-${GIT_SHA}"
+SERVICE_LATEST_TAG="${SERVICE}/${ENVIRONMENT}/${SERVICE}-latest"
+ENV_LATEST_TAG="${SERVICE}/${ENVIRONMENT}/latest"
+
+echo "   Service folder: backend/${SERVICE}"
+echo "   Target architecture: ${TARGET_ARCH}"
+echo "   Primary tag: ${PRIMARY_TAG}"
+echo ""
+
+cd backend
 
 docker build \
-  --platform=linux/${ARCH} \
-  -f "$DOCKERFILE" \
-  -t "${FULL_REPO_NAME}:${IMAGE_TAG}-${ARCH}" \
-  -t "${FULL_REPO_NAME}:${ENVIRONMENT}-${ARCH}-latest" \
-  -t "${FULL_REPO_NAME}:${GIT_SHA}-${ARCH}" \
-  -t "${FULL_REPO_NAME}:${IMAGE_TAG}" \
-  -t "${FULL_REPO_NAME}:${ENVIRONMENT}-latest" \
-  -t "${FULL_REPO_NAME}:${GIT_SHA}" \
-  --build-arg ENVIRONMENT="${ENVIRONMENT}" \
+  --platform=linux/${TARGET_ARCH} \
+  --build-arg SERVICE_FOLDER="${SERVICE}" \
+  -f "${DOCKERFILE}" \
+  -t "${ECR_URL}:${PRIMARY_TAG}" \
+  -t "${ECR_URL}:${SERVICE_LATEST_TAG}" \
+  -t "${ECR_URL}:${ENV_LATEST_TAG}" \
   .
 
 if [ $? -ne 0 ]; then
@@ -130,41 +207,25 @@ if [ $? -ne 0 ]; then
   exit 1
 fi
 
+cd ..
+
 echo -e "${GREEN}✅ Docker image built successfully${NC}"
 echo ""
 
-# Tag images for ECR (with architecture tags)
-echo -e "${BLUE}🏷️  Tagging images for ECR...${NC}"
-docker tag "${FULL_REPO_NAME}:${IMAGE_TAG}" "${ECR_URL}:${IMAGE_TAG}"
-docker tag "${FULL_REPO_NAME}:${IMAGE_TAG}-${ARCH}" "${ECR_URL}:${IMAGE_TAG}-${ARCH}"
-docker tag "${FULL_REPO_NAME}:${ENVIRONMENT}-latest" "${ECR_URL}:${ENVIRONMENT}-latest"
-docker tag "${FULL_REPO_NAME}:${ENVIRONMENT}-${ARCH}-latest" "${ECR_URL}:${ENVIRONMENT}-${ARCH}-latest"
-docker tag "${FULL_REPO_NAME}:${GIT_SHA}" "${ECR_URL}:${GIT_SHA}"
-docker tag "${FULL_REPO_NAME}:${GIT_SHA}-${ARCH}" "${ECR_URL}:${GIT_SHA}-${ARCH}"
-
-echo -e "${GREEN}✅ Images tagged${NC}"
+# =============================================================================
+# Push to ECR
+# =============================================================================
+echo -e "${BLUE}📤 Pushing images to ECR...${NC}"
 echo ""
 
-# Push to ECR
-echo -e "${BLUE}📤 Pushing images to ECR...${NC}"
+echo "   Pushing: ${PRIMARY_TAG}"
+docker push "${ECR_URL}:${PRIMARY_TAG}"
 
-echo "   Pushing: ${IMAGE_TAG}"
-docker push "${ECR_URL}:${IMAGE_TAG}"
+echo "   Pushing: ${SERVICE_LATEST_TAG}"
+docker push "${ECR_URL}:${SERVICE_LATEST_TAG}"
 
-echo "   Pushing: ${IMAGE_TAG}-${ARCH}"
-docker push "${ECR_URL}:${IMAGE_TAG}-${ARCH}"
-
-echo "   Pushing: ${ENVIRONMENT}-latest"
-docker push "${ECR_URL}:${ENVIRONMENT}-latest"
-
-echo "   Pushing: ${ENVIRONMENT}-${ARCH}-latest"
-docker push "${ECR_URL}:${ENVIRONMENT}-${ARCH}-latest"
-
-echo "   Pushing: ${GIT_SHA}"
-docker push "${ECR_URL}:${GIT_SHA}"
-
-echo "   Pushing: ${GIT_SHA}-${ARCH}"
-docker push "${ECR_URL}:${GIT_SHA}-${ARCH}"
+echo "   Pushing: ${ENV_LATEST_TAG}"
+docker push "${ECR_URL}:${ENV_LATEST_TAG}"
 
 if [ $? -ne 0 ]; then
   echo -e "${RED}❌ Error: Failed to push to ECR${NC}"
@@ -174,14 +235,25 @@ fi
 echo ""
 echo -e "${GREEN}✅ Successfully pushed images to ECR!${NC}"
 echo ""
-echo -e "${BLUE}📋 Image URIs (arm64 architecture):${NC}"
-echo "   ${ECR_URL}:${IMAGE_TAG}"
-echo "   ${ECR_URL}:${IMAGE_TAG}-${ARCH}"
-echo "   ${ECR_URL}:${ENVIRONMENT}-latest"
-echo "   ${ECR_URL}:${ENVIRONMENT}-${ARCH}-latest"
-echo "   ${ECR_URL}:${GIT_SHA}"
-echo "   ${ECR_URL}:${GIT_SHA}-${ARCH}"
+echo -e "${BLUE}📋 Image URIs (${TARGET_ARCH} architecture):${NC}"
+echo "   ${ECR_URL}:${PRIMARY_TAG}"
+echo "   ${ECR_URL}:${SERVICE_LATEST_TAG}"
+echo "   ${ECR_URL}:${ENV_LATEST_TAG}"
+echo ""
+echo -e "${BLUE}📊 Image Details:${NC}"
+echo "   Repository: ${ECR_REPOSITORY}"
+echo "   Service: ${SERVICE}"
+echo "   Environment: ${ENVIRONMENT}"
+echo "   Git SHA: ${GIT_SHA}"
+echo "   Timestamp: ${TIMESTAMP}"
+echo "   Architecture: ${TARGET_ARCH}"
 echo ""
 echo -e "${YELLOW}💡 Next steps:${NC}"
-echo "   Use these image URIs in your Terraform configuration or deployment workflows"
+echo "   1. Verify images in ECR:"
+echo "      aws ecr describe-images --repository-name ${ECR_REPOSITORY} --query 'imageDetails[?imageTags[?contains(@, \`${SERVICE}/${ENVIRONMENT}\`)]]'"
+echo ""
+echo "   2. Deploy with Terraform:"
+echo "      make app-init-dev"
+echo "      make app-plan-dev"
+echo "      make app-apply-dev"
 echo ""

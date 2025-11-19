@@ -195,9 +195,9 @@ The script now uses a hierarchical tagging scheme:
 
 **Example for backend/api service in dev:**
 ```
-backend/dev/api-20241118-162500-abc1234  # Primary: folder/env/service-datetime-sha
-backend/dev/api-latest                   # Service latest
-backend/dev/latest                       # Environment latest
+backend/dev/api-2025-11-18-16-25-abc1234  # Primary: folder/env/service-datetime-sha
+backend/dev/api-latest                    # Service latest
+backend/dev/latest                        # Environment latest
 ```
 
 **Example output**:
@@ -225,7 +225,7 @@ backend/dev/latest                       # Environment latest
 ✅ Successfully pushed images to ECR!
 
 📋 Image URIs:
-   123456789012.dkr.ecr.us-east-1.amazonaws.com/my-api:backend/dev/api-20241118-162500-abc1234
+   123456789012.dkr.ecr.us-east-1.amazonaws.com/my-api:backend/dev/api-2025-11-18-16-25-abc1234
    123456789012.dkr.ecr.us-east-1.amazonaws.com/my-api:backend/dev/api-latest
    123456789012.dkr.ecr.us-east-1.amazonaws.com/my-api:backend/dev/latest
 ```
@@ -273,7 +273,7 @@ make setup-workflows
 - ✅ Deploys to appropriate service (Lambda/App Runner/EKS)
 - ✅ Environment-specific (dev, test, production)
 - ✅ **Hierarchical image tagging strategy:**
-  - Primary tag: `{folder}/{env}/{service}-{datetime}-{git-sha}` (e.g., `backend/dev/api-20241118-162500-abc1234`)
+  - Primary tag: `{folder}/{env}/{service}-{datetime}-{git-sha}` (e.g., `backend/dev/api-2025-11-18-16-25-abc1234`)
   - Service latest: `{folder}/{env}/{service}-latest` (e.g., `backend/dev/api-latest`)
   - Environment latest: `{folder}/{env}/latest` (e.g., `backend/dev/latest`)
 - ✅ Single ECR repository with hierarchical tags (recommended)
@@ -313,7 +313,7 @@ jobs:
       - name: Build and push Docker image
         env:
           SERVICE_FOLDER: backend/api
-          DATETIME: $(date +%Y%m%d-%H%M%S)
+          TIMESTAMP: $(date +%Y-%m-%d-%H-%M)
         run: |
           docker build \
             --build-arg SERVICE_FOLDER=$SERVICE_FOLDER \
@@ -353,16 +353,16 @@ ecr_repositories = []  # Recommended
 
 All services use single repository with hierarchical tags:
 - Repository: `123456789.dkr.ecr.us-east-1.amazonaws.com/my-project`
-- Tags: `backend/dev/api-20241118-162500-abc1234`, `backend/dev/worker-latest`, etc.
+- Tags: `backend/dev/api-2025-11-18-16-25-abc1234`, `backend/dev/worker-latest`, etc.
 
 **Image Tagging in Generated Workflows**:
 
 All generated workflows create three hierarchical tags per build:
 ```bash
-# Example for backend/api service, commit abc1234, environment "dev", built on 2024-11-18 at 16:25:00
-backend/dev/api-20241118-162500-abc1234  # Primary: folder/env/service-datetime-gitsha[0:7]
-backend/dev/api-latest                   # Latest for API service in dev
-backend/dev/latest                       # Latest for any service in dev
+# Example for backend/api service, commit abc1234, environment "dev", built on 2025-11-18 at 16:25
+backend/dev/api-2025-11-18-16-25-abc1234  # Primary: folder/env/service-datetime-gitsha[0:7]
+backend/dev/api-latest                    # Latest for API service in dev
+backend/dev/latest                        # Latest for any service in dev
 ```
 
 Benefits:
@@ -391,7 +391,7 @@ env:
 env:
   SERVICE_FOLDER: backend/worker  # Custom
 
-# Results in tags like: backend/dev/worker-20241118-162500-abc1234
+# Results in tags like: backend/dev/worker-2025-11-18-16-25-abc1234
 ```
 
 ---
@@ -445,12 +445,12 @@ All services share one ECR repository but are organized hierarchically:
 
 ```
 my-project/  (single ECR repository)
-├── backend/dev/api-20241118-162500-abc1234
+├── backend/dev/api-2025-11-18-16-25-abc1234
 ├── backend/dev/api-latest
-├── backend/dev/worker-20241118-163000-def5678
+├── backend/dev/worker-2025-11-18-16-30-def5678
 ├── backend/dev/worker-latest
-├── backend/dev/latest                         # Points to most recent build
-├── backend/prod/api-20241118-164500-ghi9012
+├── backend/dev/latest                          # Points to most recent build
+├── backend/prod/api-2025-11-18-16-45-ghi9012
 └── backend/prod/api-latest
 ```
 
