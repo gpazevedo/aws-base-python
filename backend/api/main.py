@@ -1,7 +1,7 @@
 """Main FastAPI application with health checks and example endpoints."""
 
 import time
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Any
 
 from fastapi import FastAPI, HTTPException, Query
@@ -80,7 +80,7 @@ async def health_check() -> HealthResponse:
     uptime = time.time() - START_TIME
     return HealthResponse(
         status="healthy",
-        timestamp=datetime.utcnow().isoformat() + "Z",
+        timestamp=datetime.now(timezone.utc).isoformat(),
         uptime_seconds=round(uptime, 2),
         version="0.1.0",
     )

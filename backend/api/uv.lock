@@ -33,6 +33,7 @@ dependencies = [
     { name = "botocore" },
     { name = "fastapi" },
     { name = "httpx" },
+    { name = "mangum" },
     { name = "pydantic" },
     { name = "pydantic-settings" },
     { name = "python-dotenv" },
@@ -52,6 +53,7 @@ requires-dist = [
     { name = "botocore", specifier = ">=1.35.0,<2.0.0" },
     { name = "fastapi", specifier = ">=0.115.0,<0.116.0" },
     { name = "httpx", specifier = ">=0.27.0,<0.28.0" },
+    { name = "mangum", specifier = ">=0.18.0,<0.19.0" },
     { name = "pydantic", specifier = ">=2.9.0,<3.0.0" },
     { name = "pydantic-settings", specifier = ">=2.6.0,<3.0.0" },
     { name = "pytest", marker = "extra == 'test'", specifier = ">=8.3.0,<9.0.0" },
@@ -280,6 +282,18 @@ source = { registry = "https://pypi.org/simple" }
 sdist = { url = "https://files.pythonhosted.org/packages/00/2a/e867e8531cf3e36b41201936b7fa7ba7b5702dbef42922193f05c8976cd6/jmespath-1.0.1.tar.gz", hash = "sha256:90261b206d6defd58fdd5e85f478bf633a2901798906be2ad389150c5c60edbe", size = 25843, upload-time = "2022-06-17T18:00:12.224Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/31/b4/b9b800c45527aadd64d5b442f9b932b00648617eb5d63d2c7a6587b7cafc/jmespath-1.0.1-py3-none-any.whl", hash = "sha256:02e2e4cc71b5bcab88332eebf907519190dd9e6e82107fa7f83b1003a6252980", size = 20256, upload-time = "2022-06-17T18:00:10.251Z" },
+]
+
+[[package]]
+name = "mangum"
+version = "0.18.0"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "typing-extensions" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/5f/7b/0297f416339ba43512bfeea976f5701cfe1ec06709b098c2e54c710aca57/mangum-0.18.0.tar.gz", hash = "sha256:50179395012d9ae3df30484c16280decf0c56fb4c76bd6e1979b9b60135f254f", size = 86716, upload-time = "2024-09-20T18:56:06.686Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/ef/25/96b21305063ff9cc609b2a50b178f9bff4dda4fc29e3ce6ce71b91f5c85d/mangum-0.18.0-py3-none-any.whl", hash = "sha256:cf71aa89bd655d465ece62c9c336be6b537eb297cfc72f7ea463aabc5eda2e6a", size = 16995, upload-time = "2024-09-20T18:56:05.19Z" },
 ]
 
 [[package]]
