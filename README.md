@@ -29,6 +29,77 @@ A production-ready Infrastructure as Code (IaC) template for bootstrapping AWS p
 
 ---
 
+## 🎯 Which Compute Option Should I Choose?
+
+Use this decision guide to select the right infrastructure for your project:
+
+```
+START HERE
+    ↓
+┌─────────────────────────────────────────────────┐
+│ What type of workload are you building?        │
+└─────────────────────────────────────────────────┘
+    ↓
+    ├─→ REST API, scheduled jobs, event processing
+    │   ├─→ Runtime < 15 minutes? → YES → ✅ Lambda
+    │   └─→ Runtime > 15 minutes? → YES → App Runner or EKS
+    │
+    ├─→ Web application, long-running processes
+    │   ├─→ Simple deployment? → YES → ✅ App Runner
+    │   └─→ Need full control? → YES → EKS
+    │
+    └─→ Complex microservices, orchestration needs
+        └─→ ✅ EKS
+```
+
+### Quick Decision Matrix
+
+| Question | Lambda | App Runner | EKS |
+|----------|--------|------------|-----|
+| **Runtime limit** | < 15 min | Unlimited | Unlimited |
+| **Cold starts** | Yes (1-3s) | Minimal | None |
+| **Scaling** | Automatic | Automatic | Manual/HPA |
+| **Cost (small app)** | $5-50/mo | $20-100/mo | $150-500/mo |
+| **Complexity** | Low | Low | High |
+| **Best for** | APIs, jobs | Web apps | Microservices |
+| **Kubernetes needed?** | No | No | Yes |
+| **Container support** | Yes | Yes | Yes |
+| **VPC required?** | Optional | Optional | Yes |
+
+### Detailed Recommendations
+
+**Choose Lambda if:**
+- ✅ You're building REST APIs, webhooks, or scheduled tasks
+- ✅ Your functions complete in < 15 minutes
+- ✅ You want the lowest cost for variable traffic
+- ✅ You prefer serverless (no server management)
+- ❌ Cold starts (1-3 seconds) are acceptable
+
+**Choose App Runner if:**
+- ✅ You're building web applications or APIs
+- ✅ You need long-running processes (> 15 minutes)
+- ✅ You want simple container deployment
+- ✅ You need auto-scaling with minimal configuration
+- ❌ You don't need Kubernetes features
+
+**Choose EKS if:**
+- ✅ You have complex microservices architecture
+- ✅ You need advanced orchestration (service mesh, sidecars)
+- ✅ Your team has Kubernetes expertise
+- ✅ You need maximum control and customization
+- ❌ Higher cost and complexity are acceptable
+
+### Can I Change Later?
+
+**Yes!** This template supports incremental adoption. See [Incremental Adoption Guide](docs/INCREMENTAL-ADOPTION.md).
+
+- **Start simple:** Begin with Lambda
+- **Add later:** Enable App Runner or EKS when needed
+- **Mix and match:** Use Lambda + App Runner together
+- **What never changes:** S3 state bucket, OIDC provider, IAM roles
+
+---
+
 ## 📋 Prerequisites
 
 **📚 For detailed installation instructions**, see [INSTALLATION.md](docs/INSTALLATION.md).
