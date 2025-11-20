@@ -76,7 +76,7 @@ A production-ready Infrastructure as Code (IaC) template for bootstrapping AWS p
 Replace "my-project" by the actual name of your project.
 
 ```bash
-git clone git@github.com:gpazevedo/aws-base-python.git my-project
+git clone <YOUR_TEMPLATE_REPO_URL> my-project
 cd my-project
 git remote remove origin
 ```
@@ -182,12 +182,12 @@ echo $(aws sts get-caller-identity --query Account --output text)
 ```
 
 Add to your GitHub repository secrets, in **Settings**/**Secrets and variables**/**Actions**:
-Click **New repository secret** to cretae these secrets with the values from the outputs:
+Click **New repository secret** to create these secrets with the values from the outputs:
 
 - `AWS_ACCOUNT_ID`    # Your aws account number
 
 Add to your GitHub repository variables, in **Settings**/**Secrets and variables**/**Actions**:
-Click **New repository variable** to cretae these variables with the values from the outputs:
+Click **New repository variable** to create these variables with the values from the outputs:
 
 - `AWS_REGION`          # Your aws region: us-east-1
 - `PROJECT_NAME`        # Your project
@@ -195,14 +195,14 @@ Click **New repository variable** to cretae these variables with the values from
 - `APPRUNNER_SERVICES`  # []
 
 
-Create enviroments in your GitHub repository, in **Settings**/**Environments**:
+Create environments in your GitHub repository, in **Settings**/**Environments**:
 
 Click **New environment** and define "dev" and click **Configure environment**, click **Add environment secret** and define:
-- `AWS_ROLE_ARN_DEV`  # arn:aws:iam::<AWS_ACCOUNT_ID>>:role/ai-aws-github-actions-dev
+- `AWS_ROLE_ARN_DEV`  # arn:aws:iam::<AWS_ACCOUNT_ID>:role/ai-aws-github-actions-dev
 
 Click **New environment** and define "prod" and click **Configure environment**, click **Add environment secret** and define:
 
-- `AWS_ROLE_ARN_PROD` # arn:aws:iam::<AWS_ACCOUNT_ID>>:role/ai-aws-github-actions-prod
+- `AWS_ROLE_ARN_PROD` # arn:aws:iam::<AWS_ACCOUNT_ID>:role/ai-aws-github-actions-prod
 
 **Done!** Your AWS infrastructure is ready for CI/CD deployments.
 
