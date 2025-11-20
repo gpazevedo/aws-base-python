@@ -147,7 +147,7 @@ START HERE
 Replace "my-project" by the actual name of your project.
 
 ```bash
-git clone <YOUR_TEMPLATE_REPO_URL> my-project
+git clone git@github.com:gpazevedo/aws-base-python.git my-project
 cd my-project
 git remote remove origin
 ```
