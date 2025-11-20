@@ -6,6 +6,40 @@ A production-ready Infrastructure as Code (IaC) template for bootstrapping AWS p
 
 **📖 New to this project?** Start with the [Terraform Bootstrap Guide](docs/TERRAFORM-BOOTSTRAP.md) for a complete walkthrough.
 
+---
+
+## 📚 Table of Contents
+
+- [🚀 Features](#-features)
+- [🎯 Which Compute Option Should I Choose?](#-which-compute-option-should-i-choose)
+- [📋 Prerequisites](#-prerequisites)
+- [🏗️ Architecture](#️-architecture)
+- [🚀 Quick Start](#-quick-start-1)
+  - [1. Clone and Setup](#1-clone-and-setup)
+  - [2. Configure Your Project](#2-configure-your-project)
+  - [3. Deploy Bootstrap Infrastructure](#3-deploy-bootstrap-infrastructure)
+  - [4. Deploy Your Application](#4-deploy-your-application)
+  - [5. Configure GitHub Actions](#5-configure-github-actions-optional)
+  - [6. Setup Code Quality](#6-setup-code-quality-optional)
+  - [7. Push to GitHub](#7-push-to-github)
+- [🧪 Testing & Deployment](#-testing--deployment)
+  - [Local Testing](#local-testing)
+  - [Deploy to AWS](#deploy-to-aws)
+  - [Deployment Workflow Summary](#deployment-workflow-summary)
+- [📝 Configuration Examples](#-configuration-examples)
+- [🏗️ Multi-Service Backend Structure](#️-multi-service-backend-structure)
+- [🐍 Python Development with uv](#-python-development-with-uv)
+- [🔧 Make Commands](#-make-commands)
+- [📁 Directory Structure](#-directory-structure)
+- [🔐 Security Best Practices](#-security-best-practices)
+- [🎯 Use Cases](#-use-cases)
+- [📊 Cost Estimates](#-cost-estimates)
+- [🆘 Troubleshooting](#-troubleshooting)
+- [📚 Documentation](#-documentation)
+- [📞 Support](#-support)
+
+---
+
 ## 🚀 Features
 
 ### Compute Options (Choose Your Stack)
