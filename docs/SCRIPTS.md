@@ -232,18 +232,6 @@ dev-latest                        # Environment latest
 
 ---
 
-### 5. `generate-workflows.sh`
-
-**Purpose**: Auto-generates GitHub Actions workflows based on enabled compute options.
-
-**Location**: `scripts/generate-workflows.sh`
-
-**Usage**:
-```bash
-./scripts/generate-workflows.sh
-# or
-make setup-workflows
-```
 
 **What it does**:
 1. Reads bootstrap outputs to detect enabled features:
@@ -256,16 +244,6 @@ make setup-workflows
    - Uses single repository (when `ecr_repositories = []`)
    - Applies hierarchical tagging based on service folder structure
    - For legacy setups: looks for repos with "lambda" or "eks" in name
-4. Generates appropriate GitHub Actions workflows in `.github/workflows/`
-
-**Generated workflows**:
-
-| Feature | Workflow Files | Trigger |
-|---------|----------------|---------|
-| **Lambda** | `deploy-lambda-dev.yml`<br>`deploy-lambda-prod.yml` | Push to main (dev)<br>Release/manual (prod) |
-| **App Runner** | `deploy-apprunner-dev.yml`<br>`deploy-apprunner-prod.yml` | Push to main (dev)<br>Release/manual (prod) |
-| **EKS** | `deploy-eks-dev.yml`<br>`deploy-eks-prod.yml` | Push to main (dev)<br>Release/manual (prod) |
-| **Always** | `terraform-plan.yml` | Pull requests |
 
 **Workflow features**:
 - ✅ Uses OIDC for AWS authentication (no long-lived credentials)
@@ -596,15 +574,6 @@ make setup-terraform-backend
 # 3. Sync tfvars to .env
 make sync-env
 
-# 4. Generate GitHub Actions workflows
-make setup-workflows
-
-# 5. Commit workflows
-git add .github/workflows/
-git commit -m "Add auto-generated workflows"
-git push
-```
-
 ### Daily Development
 ```bash
 # Build and push Docker image
@@ -612,20 +581,6 @@ make docker-push-dev
 
 # Or push directly
 ./scripts/docker-push.sh dev my-api Dockerfile.lambda
-```
-
-### Updating Workflows
-```bash
-# After changing bootstrap configuration (enable_lambda, etc.)
-make bootstrap-apply
-make setup-workflows
-
-# Review changes
-git diff .github/workflows/
-
-# Commit if happy
-git add .github/workflows/
-git commit -m "Update workflows for new configuration"
 ```
 
 ---

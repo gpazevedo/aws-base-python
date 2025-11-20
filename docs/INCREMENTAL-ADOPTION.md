@@ -132,10 +132,6 @@ cd bootstrap/
 terraform init
 terraform apply
 
-# Generate workflows
-cd ..
-make setup-workflows
-
 # Deploy first Lambda
 cd terraform/
 terraform init -backend-config=environments/dev-backend.hcl
@@ -360,19 +356,6 @@ terraform apply
 # ✅ No downtime for existing Lambda functions
 ```
 
-**4. Regenerate Workflows**
-
-```bash
-cd ..
-make setup-workflows
-
-# New workflows created:
-# + deploy-apprunner-dev.yml
-# + deploy-apprunner-prod.yml
-# = deploy-lambda-dev.yml (still works)
-# = deploy-lambda-prod.yml (still works)
-```
-
 ### What Gets Added
 
 ```
@@ -500,21 +483,6 @@ terraform apply
 
 # Monitor progress
 terraform apply -auto-approve 2>&1 | tee apply.log
-```
-
-**4. Regenerate Workflows**
-
-```bash
-cd ..
-make setup-workflows
-
-# New workflows created:
-# + deploy-eks-dev.yml
-# + deploy-eks-prod.yml
-# = deploy-lambda-dev.yml (still works)
-# = deploy-lambda-prod.yml (still works)
-# = deploy-apprunner-dev.yml (still works)
-# = deploy-apprunner-prod.yml (still works)
 ```
 
 ### Complete Architecture
@@ -695,7 +663,6 @@ When adding new compute options:
 - [ ] Run `terraform plan` to review changes
 - [ ] Backup current state: `aws s3 cp s3://my-app-terraform-state-*/bootstrap/terraform.tfstate backup.tfstate`
 - [ ] Apply changes: `terraform apply`
-- [ ] Regenerate workflows: `make setup-workflows`
 - [ ] Test existing Lambda deployments still work
 - [ ] Deploy first App Runner service
 

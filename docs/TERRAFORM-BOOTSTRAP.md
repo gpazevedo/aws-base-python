@@ -295,9 +295,6 @@ make setup-terraform-lambda
 **Recommended deployment workflow:**
 
 ```bash
-# 1. Generate GitHub Actions workflows
-make setup-workflows
-
 # 2. Configure GitHub repository secrets (from bootstrap outputs)
 make bootstrap-output  # Get role ARNs and configuration
 
@@ -551,8 +548,6 @@ vim bootstrap/terraform.tfvars
 make bootstrap-plan   # Review
 make bootstrap-apply  # Updates to single repo
 
-# 3. Regenerate workflows
-make setup-workflows  # Updates to use hierarchical tags
 ```
 
 ---

@@ -28,7 +28,6 @@ help:
 	@echo "Setup:"
 	@echo "  make setup-terraform-backend	Generate backend configs for application Terraform"
 	@echo "  make setup-terraform-lambda    Generate example lambda Terraform files"
-	@echo "  make setup-workflows         Generate GitHub Actions workflows"
 	@echo "  make setup-pre-commit        Setup pre-commit hooks (Ruff + Pyright)"
 	@echo "  make sync-env                Sync terraform.tfvars to .env file"
 	@echo ""
@@ -185,7 +184,6 @@ bootstrap-apply:
 	@echo ""
 	@echo "✅ Bootstrap complete! Next steps:"
 	@echo "   make setup-terraform-backend"
-	@echo "   make setup-workflows"
 
 bootstrap-output:
 	@echo "📊 Bootstrap outputs:"
@@ -218,10 +216,6 @@ setup-terraform-backend:
 setup-terraform-lambda:
 	@echo "🏗️  Generating example lambda Terraform files..."
 	./scripts/setup-terraform-lambda.sh
-
-setup-workflows:
-	@echo "🔄 Generating GitHub Actions workflows..."
-	./scripts/generate-workflows.sh
 
 sync-env:
 	@echo "🔄 Syncing terraform.tfvars to .env file..."

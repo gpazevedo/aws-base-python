@@ -84,7 +84,13 @@ git remote remove origin
 Install pytest and coverage in the api service:
 
 ```sh
-cd backend/api && uv pip install pytest pytest-cov && cd ../..
+cd backend/api && uv sync && uv pip install pytest pytest-cov && cd ../..
+```
+
+Check if your Python installation is ok:
+
+```bash
+make test
 ```
 
 ### 1. Create a GitHub Repository and Configure
@@ -200,7 +206,7 @@ Click **New environment** and define "prod" and click **Configure environment**,
 
 **Done!** Your AWS infrastructure is ready for CI/CD deployments.
 
-### 7. Quality Check Before Commits
+### 7. Add Quality Check Before Commits
 
 Setup pre-commit hooks for automated code quality checks:
 
@@ -246,7 +252,19 @@ make typecheck     # Run type checking
 make test          # Run tests
 ```
 
+### 8. Update your Repository
+
+```bash
+git add .
+git commit -m "Terraform Init"
+git push
+```
+
+### 9. Test Your Workflows
+
+
 ---
+
 
 ## 🧪 Testing & Deployment
 
@@ -497,8 +515,6 @@ aws lambda update-function-code \
 ```
 
 #### CI/CD Deployment (GitHub Actions)
-
-- **Pre-requisite**: `make setup-workflows`
 
 **Trigger deployment:**
 
@@ -928,7 +944,6 @@ make bootstrap-destroy   # Destroy (DANGER!)
 ### Setup
 ```bash
 make setup-terraform-backend      # Generate backend configs
-make setup-workflows    # Generate GitHub Actions workflows
 ```
 
 ### Application
