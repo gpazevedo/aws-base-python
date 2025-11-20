@@ -71,7 +71,7 @@ A production-ready Infrastructure as Code (IaC) template for bootstrapping AWS p
 
 > **📖 New to this project?** See the [complete deployment guide](docs/TERRAFORM-BOOTSTRAP.md) for detailed instructions.
 
-### 0. Clone this Repository
+### 0. Setup your Project
 
 Replace "my-project" by the actual name of your project.
 
@@ -79,6 +79,12 @@ Replace "my-project" by the actual name of your project.
 git clone git@github.com:gpazevedo/aws-base-python.git my-project
 cd my-project
 git remote remove origin
+```
+
+Install pytest and coverage in the api service:
+
+```sh
+cd backend/api && uv pip install pytest pytest-cov && cd ../..
 ```
 
 ### 1. Create a GitHub Repository and Configure
@@ -166,7 +172,7 @@ The result should be:
 Get your AWS_ACCOUNT_ID:
 
 ```bash
-$(aws sts get-caller-identity --query Account --output text)
+echo $(aws sts get-caller-identity --query Account --output text)
 ```
 
 Add to your GitHub repository secrets, in **Settings**/**Secrets and variables**/**Actions**:

@@ -100,6 +100,172 @@ pip3 install uv
 
 ---
 
+## uv Multi-Service Setup
+
+This project supports **multiple Python services** in the `backend/` directory (e.g., `backend/api`, `backend/worker`). Here's how uv works with this architecture:
+
+### ✅ Install uv Once, Manage Multiple Services
+
+**You only need ONE global uv installation** to manage all Python services in the repository. Each service maintains its own:
+- `pyproject.toml` - Service-specific dependencies
+- `uv.lock` - Locked dependency versions
+- `.venv/` - Isolated virtual environment
+
+### Working with Multiple Services
+
+```bash
+# Clone the repository
+git clone <repository-url>
+cd aws-base-python
+
+# Service 1: backend/api
+cd backend/api
+uv sync                    # Install api dependencies, creates .venv
+uv run python main.py      # Run using api's environment
+
+# Service 2: backend/worker (example future service)
+cd ../worker
+uv sync                    # Install worker dependencies, separate .venv
+uv run python main.py      # Run using worker's environment
+
+# Service 3: backend/scheduler (example future service)
+cd ../scheduler
+uv sync                    # Each service is completely independent
+uv run python main.py
+```
+
+### Directory Structure
+
+```
+backend/
+├── api/                   # API service
+│   ├── pyproject.toml     # API dependencies (fastapi, boto3, etc.)
+│   ├── uv.lock            # API locked versions
+│   ├── .venv/             # API virtual environment (auto-created)
+│   └── main.py
+│
+├── worker/                # Worker service (future)
+│   ├── pyproject.toml     # Worker dependencies (celery, redis, etc.)
+│   ├── uv.lock            # Worker locked versions
+│   ├── .venv/             # Worker virtual environment
+│   └── main.py
+│
+└── scheduler/             # Scheduler service (future)
+    ├── pyproject.toml     # Scheduler dependencies (apscheduler, etc.)
+    ├── uv.lock            # Scheduler locked versions
+    ├── .venv/             # Scheduler virtual environment
+    └── main.py
+```
+
+### Key Benefits
+
+1. **Isolation**: Each service has its own dependencies and virtual environment
+2. **Independence**: Services can use different library versions without conflicts
+3. **Simplicity**: One `uv` command manages everything
+4. **Speed**: uv is 10-100x faster than pip for dependency resolution
+5. **Reproducibility**: `uv.lock` ensures consistent builds across environments
+
+### Adding a New Service
+
+To create a new Python service:
+
+```bash
+# 1. Create service directory
+mkdir -p backend/my-service
+cd backend/my-service
+
+# 2. Copy template from existing service
+cp ../api/pyproject.toml .
+cp ../api/__init__.py .
+
+# 3. Edit pyproject.toml
+vim pyproject.toml
+# Update: name = "my-service"
+# Update: dependencies as needed
+
+# 4. Create your service code
+cat > main.py <<'EOF'
+def handler(event, context):
+    return {"statusCode": 200, "body": "My Service"}
+EOF
+
+# 5. Initialize and install dependencies
+uv sync
+
+# 6. Test locally
+uv run python -c "from main import handler; print(handler({}, None))"
+```
+
+### Common Commands
+
+```bash
+# Install dependencies for current service
+uv sync
+
+# Add a new dependency
+uv add boto3
+
+# Add a dev dependency
+uv add --dev pytest
+
+# Update dependencies
+uv sync --upgrade
+
+# Run Python in the service's environment
+uv run python main.py
+
+# Run tests
+uv run pytest
+
+# Remove a dependency
+uv remove package-name
+```
+
+### Why Not Use a Monorepo Tool?
+
+This project uses **uv's built-in isolation** instead of monorepo tools like Poetry plugins or pipenv workspaces because:
+
+- ✅ **Simpler**: Each service is an independent Python project
+- ✅ **Standard**: Uses standard `pyproject.toml` (PEP 517/518)
+- ✅ **Flexible**: Services can be extracted into separate repos later
+- ✅ **Docker-friendly**: Each Dockerfile builds one service independently
+- ✅ **uv-native**: No additional tooling needed
+
+### Troubleshooting
+
+**Issue**: `uv: command not found` after installation
+
+```bash
+# Add to PATH in ~/.bashrc or ~/.zshrc
+export PATH="$HOME/.cargo/bin:$PATH"
+source ~/.bashrc
+```
+
+**Issue**: Dependencies not installing in one service
+
+```bash
+# Ensure you're in the service directory
+cd backend/api
+pwd  # Should show: /path/to/aws-base-python/backend/api
+
+# Remove lock file and retry
+rm uv.lock
+uv sync
+```
+
+**Issue**: Virtual environment conflicts between services
+
+```bash
+# uv automatically creates separate .venv for each service
+# If you see conflicts, ensure you're running commands from the correct directory
+
+# Check which Python is active
+uv run which python
+# Should show: /path/to/backend/api/.venv/bin/python (for api service)
+```
+
+---
+
 ## Pyright (Type Checker)
 
 **Requires Node.js/npm**
