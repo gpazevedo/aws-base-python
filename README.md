@@ -233,7 +233,18 @@ make app-apply-dev
 LAMBDA_URL=$(cd terraform && terraform output -raw lambda_function_url)
 curl $LAMBDA_URL
 # Expected: {"message":"Hello, World!","version":"0.1.0"}
+
+# Test health endpoint
+curl $LAMBDA_URL/health
+
+# View interactive API documentation
+open "$LAMBDA_URL/docs"  # or visit in browser
 ```
+
+> 📖 **API Documentation:** See [API-ENDPOINTS.md](docs/API-ENDPOINTS.md) for all available endpoints including:
+> - Health checks: `/health`, `/liveness`, `/readiness`
+> - API endpoints: `/`, `/greet`, `/error`
+> - Interactive docs: `/docs` (Swagger UI), `/redoc`, `/openapi.json`
 
 ### 5. Configure GitHub Actions (Optional)
 
@@ -245,8 +256,10 @@ For automated CI/CD, configure GitHub repository settings:
 **Variables** (Settings → Secrets and variables → Actions):
 - `AWS_REGION` - e.g., "us-east-1"
 - `PROJECT_NAME` - Your project name
-- `LAMBDAS` - e.g., ["api"]
-- `APPRUNNER_SERVICES` - e.g., []
+- `LAMBDAS` - e.g., ["api"] (for Lambda deployments)
+- `APPRUNNER_SERVICES` - e.g., [] (for App Runner deployments)
+- `EKS_SERVICES` - e.g., ["api"] (for EKS deployments)
+- `EKS_CLUSTER_NAME` - e.g., "my-project-dev" (for EKS deployments)
 
 **Environments** (Settings → Environments):
 - Create "dev" environment with secret: `AWS_ROLE_ARN_DEV`
@@ -1235,6 +1248,13 @@ This repository includes comprehensive documentation for all aspects of the boot
 
 #### 🛠️ Development Tools
 
+- **[🌐 API Endpoints](docs/API-ENDPOINTS.md)** - Complete API documentation
+  - All available endpoints (health checks, API, docs)
+  - Request/response examples
+  - How to access via Lambda Function URL or API Gateway
+  - Local development and testing instructions
+  - Interactive documentation (Swagger UI, ReDoc)
+
 - **[✅ Pre-commit Hooks](docs/PRE-COMMIT.md)** - Automated code quality
   - Ruff (linting + formatting) setup
   - Pyright (type checking) configuration
@@ -1254,6 +1274,7 @@ This repository includes comprehensive documentation for all aspects of the boot
 | Document | Purpose | When to Read |
 |----------|---------|--------------|
 | [README.md](README.md) | Overview and quick start | **Start here** |
+| [API-ENDPOINTS.md](docs/API-ENDPOINTS.md) | API documentation | After deployment, for API usage |
 | [TERRAFORM-BOOTSTRAP.md](docs/TERRAFORM-BOOTSTRAP.md) | Infrastructure deep dive | Before deploying bootstrap |
 | [INCREMENTAL-ADOPTION.md](docs/INCREMENTAL-ADOPTION.md) | Scaling strategy | Planning architecture evolution |
 | [PRE-COMMIT.md](docs/PRE-COMMIT.md) | Code quality setup | Setting up development environment |
@@ -1261,6 +1282,7 @@ This repository includes comprehensive documentation for all aspects of the boot
 
 ### External Resources
 
+- [FastAPI Documentation](https://fastapi.tiangolo.com/) - Modern web framework for APIs
 - [AWS Lambda Best Practices](https://docs.aws.amazon.com/lambda/latest/dg/best-practices.html)
 - [App Runner Documentation](https://docs.aws.amazon.com/apprunner/)
 - [EKS Best Practices](https://aws.github.io/aws-eks-best-practices/)
