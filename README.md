@@ -6,6 +6,40 @@ A production-ready Infrastructure as Code (IaC) template for bootstrapping AWS p
 
 **📖 New to this project?** Start with the [Terraform Bootstrap Guide](docs/TERRAFORM-BOOTSTRAP.md) for a complete walkthrough.
 
+---
+
+## 📚 Table of Contents
+
+- [🚀 Features](#-features)
+- [🎯 Which Compute Option Should I Choose?](#-which-compute-option-should-i-choose)
+- [📋 Prerequisites](#-prerequisites)
+- [🏗️ Architecture](#️-architecture)
+- [🚀 Quick Start](#-quick-start-1)
+  - [1. Clone and Setup](#1-clone-and-setup)
+  - [2. Configure Your Project](#2-configure-your-project)
+  - [3. Deploy Bootstrap Infrastructure](#3-deploy-bootstrap-infrastructure)
+  - [4. Deploy Your Application](#4-deploy-your-application)
+  - [5. Configure GitHub Actions](#5-configure-github-actions-optional)
+  - [6. Setup Code Quality](#6-setup-code-quality-optional)
+  - [7. Push to GitHub](#7-push-to-github)
+- [🧪 Testing & Deployment](#-testing--deployment)
+  - [Local Testing](#local-testing)
+  - [Deploy to AWS](#deploy-to-aws)
+  - [Deployment Workflow Summary](#deployment-workflow-summary)
+- [📝 Configuration Examples](#-configuration-examples)
+- [🏗️ Multi-Service Backend Structure](#️-multi-service-backend-structure)
+- [🐍 Python Development with uv](#-python-development-with-uv)
+- [🔧 Make Commands](#-make-commands)
+- [📁 Directory Structure](#-directory-structure)
+- [🔐 Security Best Practices](#-security-best-practices)
+- [🎯 Use Cases](#-use-cases)
+- [📊 Cost Estimates](#-cost-estimates)
+- [🆘 Troubleshooting](#-troubleshooting)
+- [📚 Documentation](#-documentation)
+- [📞 Support](#-support)
+
+---
+
 ## 🚀 Features
 
 ### Compute Options (Choose Your Stack)
@@ -26,6 +60,77 @@ A production-ready Infrastructure as Code (IaC) template for bootstrapping AWS p
 - ECR repositories (conditional)
 - Lambda execution roles (conditional)
 - App Runner access & instance roles (conditional)
+
+---
+
+## 🎯 Which Compute Option Should I Choose?
+
+Use this decision guide to select the right infrastructure for your project:
+
+```
+START HERE
+    ↓
+┌─────────────────────────────────────────────────┐
+│ What type of workload are you building?        │
+└─────────────────────────────────────────────────┘
+    ↓
+    ├─→ REST API, scheduled jobs, event processing
+    │   ├─→ Runtime < 15 minutes? → YES → ✅ Lambda
+    │   └─→ Runtime > 15 minutes? → YES → App Runner or EKS
+    │
+    ├─→ Web application, long-running processes
+    │   ├─→ Simple deployment? → YES → ✅ App Runner
+    │   └─→ Need full control? → YES → EKS
+    │
+    └─→ Complex microservices, orchestration needs
+        └─→ ✅ EKS
+```
+
+### Quick Decision Matrix
+
+| Question | Lambda | App Runner | EKS |
+|----------|--------|------------|-----|
+| **Runtime limit** | < 15 min | Unlimited | Unlimited |
+| **Cold starts** | Yes (1-3s) | Minimal | None |
+| **Scaling** | Automatic | Automatic | Manual/HPA |
+| **Cost (small app)** | $5-50/mo | $20-100/mo | $150-500/mo |
+| **Complexity** | Low | Low | High |
+| **Best for** | APIs, jobs | Web apps | Microservices |
+| **Kubernetes needed?** | No | No | Yes |
+| **Container support** | Yes | Yes | Yes |
+| **VPC required?** | Optional | Optional | Yes |
+
+### Detailed Recommendations
+
+**Choose Lambda if:**
+- ✅ You're building REST APIs, webhooks, or scheduled tasks
+- ✅ Your functions complete in < 15 minutes
+- ✅ You want the lowest cost for variable traffic
+- ✅ You prefer serverless (no server management)
+- ❌ Cold starts (1-3 seconds) are acceptable
+
+**Choose App Runner if:**
+- ✅ You're building web applications or APIs
+- ✅ You need long-running processes (> 15 minutes)
+- ✅ You want simple container deployment
+- ✅ You need auto-scaling with minimal configuration
+- ❌ You don't need Kubernetes features
+
+**Choose EKS if:**
+- ✅ You have complex microservices architecture
+- ✅ You need advanced orchestration (service mesh, sidecars)
+- ✅ Your team has Kubernetes expertise
+- ✅ You need maximum control and customization
+- ❌ Higher cost and complexity are acceptable
+
+### Can I Change Later?
+
+**Yes!** This template supports incremental adoption. See [Incremental Adoption Guide](docs/INCREMENTAL-ADOPTION.md).
+
+- **Start simple:** Begin with Lambda
+- **Add later:** Enable App Runner or EKS when needed
+- **Mix and match:** Use Lambda + App Runner together
+- **What never changes:** S3 state bucket, OIDC provider, IAM roles
 
 ---
 
@@ -69,198 +174,107 @@ A production-ready Infrastructure as Code (IaC) template for bootstrapping AWS p
 
 ## 🚀 Quick Start
 
-> **📖 New to this project?** See the [complete deployment guide](docs/TERRAFORM-BOOTSTRAP.md) for detailed instructions.
+> **📖 First time?** This gets you running in ~15 minutes. For detailed explanations, see the [complete deployment guide](docs/TERRAFORM-BOOTSTRAP.md).
 
-### 0. Setup your Project
-
-Replace "my-project" by the actual name of your project.
+### 1. Clone and Setup
 
 ```bash
+# Clone template
 git clone git@github.com:gpazevedo/aws-base-python.git my-project
 cd my-project
 git remote remove origin
-```
 
-Install pytest and coverage in the api service:
-
-```sh
+# Test Python setup
 cd backend/api && uv sync && uv pip install pytest pytest-cov && cd ../..
-```
-
-Check if your Python installation is ok:
-
-```bash
 make test
 ```
 
-### 1. Create a GitHub Repository and Configure
-
-Create an empty GitHub repository for your project.
-Follow the quick setup instructions: "...push an existing repository from the command line".
-
-Replace "my-project" by the actual name of your project.
+### 2. Configure Your Project
 
 ```bash
+# Create config file
 cp bootstrap/terraform.tfvars.example bootstrap/terraform.tfvars
-```
 
-Edit `bootstrap/terraform.tfvars`:
-
-```hcl
-project_name = "my-project"
-github_org   = "my-github-org"
-github_repo  = "my-repo"
-aws_region   = "us-east-1"
-
-enable_lambda = true  # Choose your compute stack
-```
-
-### 2. Verify AWS Access
-
-```bash
-aws sts get-caller-identity  # Verify AWS credentials
+# Edit bootstrap/terraform.tfvars with your values:
+# - project_name: "my-project"
+# - github_org: "my-org"
+# - github_repo: "my-repo"
+# - aws_region: "us-east-1"
+# - enable_lambda: true (or enable_apprunner/enable_eks)
 ```
 
 ### 3. Deploy Bootstrap Infrastructure
 
 ```bash
-make bootstrap-create          # Create S3 state bucket
-make bootstrap-init            # Initialize Terraform
-make bootstrap-apply           # Deploy infrastructure
+# Verify AWS credentials
+aws sts get-caller-identity
+
+# Deploy bootstrap (S3 state, OIDC, IAM roles, ECR)
+make bootstrap-create
+make bootstrap-init
+make bootstrap-apply
 ```
 
-**What this creates:**
-- S3 backend (Terraform state with S3 locking)
-- GitHub OIDC provider (passwordless CI/CD)
-- IAM roles (dev, test, prod environments)
-- ECR repositories (if using containers)
-- VPC/EKS cluster (if enabled)
-
-### 4. Deploy App (Lambda) Infrastructure
-
-**⚠️ Important: Build and push Docker image FIRST before deploying infrastructure!**
+### 4. Deploy Your Application
 
 ```bash
-# Step 1: Generate Terraform configuration
-make setup-terraform-backend  # Generate backend Terraform files
-make setup-terraform-lambda   # Generate Lambda app Terraform files
+# Generate Terraform configs
+make setup-terraform-backend
+make setup-terraform-lambda  # Optional: generates example Lambda Terraform
 
-# Step 2: Build and push Docker image to ECR (REQUIRED before terraform apply)
-# Manual build and push with docker-push.sh (one-step solution)
+# Build and push Docker image to ECR
 ./scripts/docker-push.sh dev api Dockerfile.lambda
-#   - Automatically detects CPU architecture (x86_64/arm64)
-#   - Auto-installs QEMU if needed for cross-platform builds
-#   - Builds for arm64 (AWS Graviton2)
-#   - Pushes with hierarchical tags: api-dev-*, api-dev-latest, dev-latest
 
-# Step 3: Deploy infrastructure
-make app-init-dev             # Initialize Terraform for dev environment
-make app-apply-dev            # Deploy Lambda function and resources
-```
+# Deploy infrastructure
+make app-init-dev
+make app-apply-dev
 
-### 5. Test Lambda
-
-Now that the image repository (ECR) has an image of our Lambda function,
-and all resources associated with the Lambda are deployed,
-the lambda function can be called directly:
-
-```bash
+# Test Lambda
 LAMBDA_URL=$(cd terraform && terraform output -raw lambda_function_url)
 curl $LAMBDA_URL
-```
-The result should be:
-```bash
-{"message":"Hello, World!","version":"0.1.0"}
+# Expected: {"message":"Hello, World!","version":"0.1.0"}
 ```
 
-### 6. Configure Your GitHub Repository
+### 5. Configure GitHub Actions (Optional)
 
-Get your AWS_ACCOUNT_ID:
+For automated CI/CD, configure GitHub repository settings:
 
-```bash
-echo $(aws sts get-caller-identity --query Account --output text)
-```
+**Secrets** (Settings → Secrets and variables → Actions):
+- `AWS_ACCOUNT_ID` - Your AWS account number
 
-Add to your GitHub repository secrets, in **Settings**/**Secrets and variables**/**Actions**:
-Click **New repository secret** to cretae these secrets with the values from the outputs:
+**Variables** (Settings → Secrets and variables → Actions):
+- `AWS_REGION` - e.g., "us-east-1"
+- `PROJECT_NAME` - Your project name
+- `LAMBDAS` - e.g., ["api"]
+- `APPRUNNER_SERVICES` - e.g., []
 
-- `AWS_ACCOUNT_ID`    # Your aws account number
+**Environments** (Settings → Environments):
+- Create "dev" environment with secret: `AWS_ROLE_ARN_DEV`
+- Create "prod" environment with secret: `AWS_ROLE_ARN_PROD`
 
-Add to your GitHub repository variables, in **Settings**/**Secrets and variables**/**Actions**:
-Click **New repository variable** to cretae these variables with the values from the outputs:
+> Get ARN values: `aws iam list-roles --query 'Roles[?contains(RoleName, `github-actions`)].Arn'`
 
-- `AWS_REGION`          # Your aws region: us-east-1
-- `PROJECT_NAME`        # Your project
-- `LAMBDAS`             # Your lambdas: ["api"]
-- `APPRUNNER_SERVICES`  # []
-
-
-Create enviroments in your GitHub repository, in **Settings**/**Environments**:
-
-Click **New environment** and define "dev" and click **Configure environment**, click **Add environment secret** and define:
-- `AWS_ROLE_ARN_DEV`  # arn:aws:iam::<AWS_ACCOUNT_ID>>:role/ai-aws-github-actions-dev
-
-Click **New environment** and define "prod" and click **Configure environment**, click **Add environment secret** and define:
-
-- `AWS_ROLE_ARN_PROD` # arn:aws:iam::<AWS_ACCOUNT_ID>>:role/ai-aws-github-actions-prod
-
-**Done!** Your AWS infrastructure is ready for CI/CD deployments.
-
-### 7. Add Quality Check Before Commits
-
-Setup pre-commit hooks for automated code quality checks:
+### 6. Setup Code Quality (Optional)
 
 ```bash
+# Install pre-commit hooks (Ruff, Pyright, Terraform linting)
 make setup-pre-commit
+
+# Manual checks
+make lint test typecheck
 ```
 
-This installs hooks that automatically run before each commit:
-- **Ruff** - Python linting and formatting
-- **Pyright** - Python type checking
-- **Terraform fmt** - Terraform formatting
-- **tflint** - Terraform validation and linting
+See [Pre-commit Documentation](docs/PRE-COMMIT.md) for details.
 
-**What happens when formatters modify files:**
-
-Pre-commit is configured with `fail_fast: true`, which means:
-1. If a formatter (ruff, terraform fmt) modifies files, the commit is stopped
-2. The modified files are left in your working directory
-3. You can review the changes with `git diff`
-4. Stage the changes and commit again: `git add . && git commit`
-
-**Example workflow:**
-```bash
-# First commit attempt - formatters modify files
-git commit -m "feat: Add new feature"
-# → Pre-commit runs, formats files, and FAILS
-# → Files are now formatted in your working directory
-
-# Review what was changed
-git diff
-
-# Stage the formatted files and commit again
-git add .
-git commit -m "feat: Add new feature"
-# → Pre-commit runs, no changes needed, SUCCEEDS
-```
-
-**Manual quality checks:**
-```bash
-make lint          # Run linting
-make lint-fix      # Auto-fix issues
-make typecheck     # Run type checking
-make test          # Run tests
-```
-
-### 8. Update your Repository
+### 7. Push to GitHub
 
 ```bash
 git add .
-git commit -m "Terraform Init"
-git push
+git commit -m "Initial setup"
+git push origin main
 ```
 
-### 9. Test Your Workflows
+**✅ Done!** Your infrastructure is deployed and CI/CD is ready.
 
 
 ---
