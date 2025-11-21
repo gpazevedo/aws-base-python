@@ -6,6 +6,43 @@ This project uses [release-please](https://github.com/googleapis/release-please)
 
 ---
 
+## ⚙️ Setup Required
+
+### Creating a Personal Access Token (PAT)
+
+GitHub Actions' default `GITHUB_TOKEN` cannot create pull requests. You need to create a Personal Access Token (PAT) with the necessary permissions.
+
+**Steps:**
+
+1. **Generate a Fine-Grained Personal Access Token:**
+   - Go to **Settings** → **Developer settings** → **Personal access tokens** → **Fine-grained tokens**
+   - Click **Generate new token**
+   - Configure the token:
+     - **Name**: `Release Please Token`
+     - **Expiration**: Choose appropriate duration (90 days recommended)
+     - **Repository access**: Select "Only select repositories" and choose this repository
+     - **Permissions**:
+       - **Contents**: Read and write
+       - **Pull requests**: Read and write
+       - **Metadata**: Read-only (automatically selected)
+
+2. **Add Token as Repository Secret:**
+   - Go to your repository's **Settings** → **Secrets and variables** → **Actions**
+   - Click **New repository secret**
+   - **Name**: `RELEASE_PLEASE_TOKEN`
+   - **Value**: Paste your generated token
+   - Click **Add secret**
+
+3. **Verify Setup:**
+   - The workflow in `.github/workflows/release-please.yml` is configured to use this token
+   - If the token is not set, it will fall back to `GITHUB_TOKEN` (which cannot create PRs)
+
+**Alternative: Use GitHub App (Advanced)**
+
+For organizations, consider using a [GitHub App](https://github.com/googleapis/release-please-action#github-app-authentication) instead of a PAT for better security and no expiration concerns.
+
+---
+
 ## 🎯 What is Release Please?
 
 **Release Please** is a GitHub Action that:
@@ -427,7 +464,16 @@ git clone --branch v1 https://github.com/org/repo.git
 
 **Solutions**:
 
-1. **Check commit format**:
+1. **Check PAT token is configured**:
+   ```
+   Error: "GitHub Actions is not permitted to create or approve pull requests"
+   ```
+
+   **Solution**: You need to set up a `RELEASE_PLEASE_TOKEN` secret. See the [Setup Required](#️-setup-required) section above.
+
+   The default `GITHUB_TOKEN` provided by GitHub Actions cannot create pull requests for security reasons. You must use a Personal Access Token (PAT) with appropriate permissions.
+
+2. **Check commit format**:
    ```bash
    # Bad (no type)
    git log -1 --pretty=%B
@@ -437,12 +483,12 @@ git clone --branch v1 https://github.com/org/repo.git
    # Output: "feat: add new feature"
    ```
 
-2. **Verify workflow ran**:
+3. **Verify workflow ran**:
    - Go to Actions tab in GitHub
    - Check if "Release Please" workflow ran
    - Review logs for errors
 
-3. **Check if release is needed**:
+4. **Check if release is needed**:
    - Release Please only creates PRs if there are releasable commits
    - Commits like `chore:`, `ci:`, `test:` don't trigger releases by default
 
