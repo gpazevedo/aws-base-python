@@ -388,7 +388,7 @@ The FastAPI application exposes health check endpoints for monitoring:
 ```json
 {
   "status": "healthy",
-  "timestamp": "2025-01-20T12:34:56.789Z",
+  "timestamp": "2025-01-20T12:34:56.789012+00:00",
   "uptime_seconds": 123.45,
   "version": "0.1.0"
 }
