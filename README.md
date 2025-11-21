@@ -45,6 +45,7 @@ A production-ready Infrastructure as Code (IaC) template for bootstrapping AWS p
 ### Compute Options (Choose Your Stack)
 - **✅ Lambda** - Serverless functions with container images (default)
 - **🌐 App Runner** - Fully managed containerized web applications
+- **☸️ EKS** - Kubernetes-based container orchestration platform
 
 ### Core Capabilities
 - **📦 Python 3.13 + uv** - Latest Python with ultra-fast dependency management
@@ -60,6 +61,7 @@ A production-ready Infrastructure as Code (IaC) template for bootstrapping AWS p
 - ECR repositories (conditional)
 - Lambda execution roles (conditional)
 - App Runner access & instance roles (conditional)
+- EKS cluster with node groups (conditional)
 
 ---
 
@@ -158,7 +160,8 @@ START HERE
 │  │  • S3 State Bucket (versioned, encrypted)              │   │
 │  │  • GitHub OIDC Provider                                │   │
 │  │  • IAM Roles (dev, test, prod)                         │   │
-│  │  • ECR Repositories                                │   │
+│  │  • ECR Repositories                                    │   │
+│  │  • EKS Cluster (if enabled)                            │   │
 │  └────────────────────────────────────────────────────────┘   │
 │                                                               │
 │  ┌────────────────────────────────────────────────────────┐   │
@@ -166,6 +169,7 @@ START HERE
 │  │                                                        │   │
 │  │  • Lambda Functions (if enabled)                       │   │
 │  │  • App Runner Services (if enabled)                    │   │
+│  │  • EKS Workloads (if enabled)                          │   │
 │  └────────────────────────────────────────────────────────┘   │
 └───────────────────────────────────────────────────────────────┘
 ```
