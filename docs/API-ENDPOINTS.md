@@ -64,7 +64,7 @@ GET /health
 ```json
 {
   "status": "healthy",
-  "timestamp": "2025-01-20T12:34:56.789Z",
+  "timestamp": "2025-01-20T12:34:56.789012+00:00",
   "uptime_seconds": 123.45,
   "version": "0.1.0"
 }
@@ -72,7 +72,7 @@ GET /health
 
 **Response Fields:**
 - `status`: Current health status (`healthy`)
-- `timestamp`: ISO 8601 timestamp (UTC)
+- `timestamp`: ISO 8601 timestamp with timezone (UTC)
 - `uptime_seconds`: Time since application started
 - `version`: Application version
 
@@ -195,11 +195,11 @@ GET /greet?name=Alice
 **Examples:**
 ```bash
 # Default name
-curl https://your-api.execute-api.us-east-1.amazonaws.com/greet
+curl https://my-project-api.execute-api.us-east-1.amazonaws.com/greet
 # Response: {"message": "Hello, World!", "version": "0.1.0"}
 
 # Custom name
-curl https://your-api.execute-api.us-east-1.amazonaws.com/greet?name=Alice
+curl https://my-project-api.execute-api.us-east-1.amazonaws.com/greet?name=Alice
 # Response: {"message": "Hello, Alice!", "version": "0.1.0"}
 ```
 
@@ -247,12 +247,12 @@ Content-Type: application/json
 **Examples:**
 ```bash
 # Valid request
-curl -X POST https://your-api.execute-api.us-east-1.amazonaws.com/greet \
+curl -X POST https://my-project-api.execute-api.us-east-1.amazonaws.com/greet \
   -H "Content-Type: application/json" \
   -d '{"name": "Bob"}'
 
 # Invalid request (missing name)
-curl -X POST https://your-api.execute-api.us-east-1.amazonaws.com/greet \
+curl -X POST https://my-project-api.execute-api.us-east-1.amazonaws.com/greet \
   -H "Content-Type: application/json" \
   -d '{}'
 # Response: 422 Validation Error
@@ -289,7 +289,7 @@ FastAPI automatically generates interactive API documentation that's always up-t
 
 ### Swagger UI (`/docs`)
 
-**Access:** `https://your-api-url/docs`
+**Access:** `https://my-project-api-url/docs`
 
 **Features:**
 - Interactive API explorer
@@ -320,7 +320,7 @@ FastAPI automatically generates interactive API documentation that's always up-t
 
 ### ReDoc (`/redoc`)
 
-**Access:** `https://your-api-url/redoc`
+**Access:** `https://my-project-api-url/redoc`
 
 **Features:**
 - Three-panel layout
@@ -331,7 +331,7 @@ FastAPI automatically generates interactive API documentation that's always up-t
 
 ### OpenAPI Schema (`/openapi.json`)
 
-**Access:** `https://your-api-url/openapi.json`
+**Access:** `https://my-project-api-url/openapi.json`
 
 **Features:**
 - Machine-readable API specification
@@ -343,7 +343,7 @@ FastAPI automatically generates interactive API documentation that's always up-t
 **Example:**
 ```bash
 # Download OpenAPI schema
-curl https://your-api-url/openapi.json > api-schema.json
+curl https://my-project-api-url/openapi.json > api-schema.json
 
 # Use with Postman
 # File → Import → api-schema.json
@@ -413,7 +413,7 @@ aws apigateway get-rest-apis \
   --output text
 
 # Then get stage URL
-API_ID=<your-api-id>
+API_ID=<API_ID>
 aws apigateway get-stage \
   --rest-api-id $API_ID \
   --stage-name dev \
@@ -553,24 +553,24 @@ curl -XPOST "http://localhost:9000/2015-03-31/functions/function/invocations" \
 
 ```bash
 # Health check
-curl https://your-api-url/health | jq
+curl https://my-project-api-url/health | jq
 
 # Liveness
-curl https://your-api-url/liveness | jq
+curl https://my-project-api-url/liveness | jq
 
 # Root endpoint
-curl https://your-api-url/ | jq
+curl https://my-project-api-url/ | jq
 
 # Greet with query
-curl "https://your-api-url/greet?name=Alice" | jq
+curl "https://my-project-api-url/greet?name=Alice" | jq
 
 # Greet with POST
-curl -X POST https://your-api-url/greet \
+curl -X POST https://my-project-api-url/greet \
   -H "Content-Type: application/json" \
   -d '{"name": "Bob"}' | jq
 
 # Test error handling
-curl https://your-api-url/error | jq
+curl https://my-project-api-url/error | jq
 ```
 
 ### Using httpie
@@ -580,13 +580,13 @@ curl https://your-api-url/error | jq
 pip install httpie
 
 # Health check
-http https://your-api-url/health
+http https://my-project-api-url/health
 
 # Greet with POST
-http POST https://your-api-url/greet name=Alice
+http POST https://my-project-api-url/greet name=Alice
 
 # Interactive docs
-http https://your-api-url/docs
+http https://my-project-api-url/docs
 ```
 
 ### Using Python
@@ -594,7 +594,7 @@ http https://your-api-url/docs
 ```python
 import requests
 
-BASE_URL = "https://your-api-url"
+BASE_URL = "https://my-project-api-url"
 
 # Health check
 response = requests.get(f"{BASE_URL}/health")
