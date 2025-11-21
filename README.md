@@ -252,6 +252,7 @@ For automated CI/CD, configure GitHub repository settings:
 
 **Secrets** (Settings → Secrets and variables → Actions):
 - `AWS_ACCOUNT_ID` - Your AWS account number
+- `RELEASE_PLEASE_TOKEN` - Personal Access Token for automated releases (see below)
 
 **Variables** (Settings → Secrets and variables → Actions):
 - `AWS_REGION` - e.g., "us-east-1"
@@ -266,6 +267,25 @@ For automated CI/CD, configure GitHub repository settings:
 - Create "prod" environment with secret: `AWS_ROLE_ARN_PROD`
 
 > Get ARN values: `aws iam list-roles --query 'Roles[?contains(RoleName, `github-actions`)].Arn'`
+
+#### Setting up Release Please Token
+
+The `RELEASE_PLEASE_TOKEN` is required for automated release management. GitHub's default `GITHUB_TOKEN` cannot create pull requests due to security restrictions.
+
+**To create the token:**
+
+1. Go to **Settings** → **Developer settings** → **Personal access tokens** → **Fine-grained tokens**
+2. Click **Generate new token**
+3. Configure:
+   - **Name**: `Release Please Token`
+   - **Expiration**: 90 days (recommended)
+   - **Repository access**: Select this repository
+   - **Permissions**:
+     - **Contents**: Read and write
+     - **Pull requests**: Read and write
+4. Add the token as repository secret `RELEASE_PLEASE_TOKEN`
+
+**📖 For detailed instructions**, see [Release Please Documentation](docs/RELEASE-PLEASE.md)
 
 ### 6. Setup Code Quality (Optional)
 
